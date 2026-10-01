@@ -14,6 +14,7 @@ public class AuthService : IAuthService
     // Mensaje genérico: no revelamos si el usuario existe (evita enumeración de usuarios).
     private const string CredencialesInvalidas = "Usuario o contraseña incorrectos";
     private const int CodigoExpiraEnMinutos = 10;
+    private const int RegistroExpiraEnMinutos = 45;
     private const int IntentosMaximosCodigo = 5;
     private const string CodigoInvalido = "Código inválido o expirado";
 
@@ -93,6 +94,7 @@ public class AuthService : IAuthService
         }
 
         verificacion.FechaVerificacion = DateTime.UtcNow;
+        verificacion.ExpiraEn = DateTime.UtcNow.AddMinutes(RegistroExpiraEnMinutos);
         await _verificaciones.GuardarCambiosAsync(ct);
 
         return Resultado<VerificarCodigoEmailResponseDto>.Ok(new VerificarCodigoEmailResponseDto
@@ -172,7 +174,7 @@ public class AuthService : IAuthService
 
         var verificacion = await _verificaciones.ObtenerVerificadaPorTokenAsync(dto.VerificationToken.Trim(), ct);
         if (verificacion is null || verificacion.Email != email)
-            return Resultado<RegistroResponseDto>.Error("Verifica tu correo antes de crear la cuenta");
+            return Resultado<RegistroResponseDto>.Error("La verificación del correo expiró. Vuelve a confirmar tu correo.");
 
         var usuario = new Usuario
         {
