@@ -21,6 +21,11 @@ public class UsuarioRepository : IUsuarioRepository
     public Task<bool> ExisteNombreUsuarioAsync(string nombreUsuario, CancellationToken ct = default) =>
         _context.Usuarios.AnyAsync(u => u.NombreUsuario == nombreUsuario, ct);
 
+    public Task<bool> ExisteNombreUsuarioEnLookupAsync(string nombreUsuario, CancellationToken ct = default) =>
+        _context.Database
+            .SqlQuery<int>($"SELECT 1 AS Value FROM dbo.vw_UsuariosLookup WHERE NombreUsuario = {nombreUsuario}")
+            .AnyAsync(ct);
+
     public Task<bool> ExisteEmailAsync(string email, CancellationToken ct = default) =>
         _context.Usuarios.AnyAsync(u => u.Email == email, ct);
 

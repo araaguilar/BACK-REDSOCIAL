@@ -58,6 +58,14 @@ public class AuthController : ControllerBase
         return resultado.Exito ? Ok(resultado) : Conflict(resultado);
     }
 
+    [HttpGet("registro/usuario-disponible/{nombreUsuario}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> UsuarioDisponible([FromRoute] string nombreUsuario, CancellationToken ct)
+    {
+        var resultado = await _authService.VerificarDisponibilidadUsuarioAsync(nombreUsuario, ct);
+        return resultado.Exito ? Ok(resultado) : BadRequest(resultado);
+    }
+
     // Endpoint protegido para comprobar que el JWT funciona.
     [HttpGet("perfil")]
     [Authorize]

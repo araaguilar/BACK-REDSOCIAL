@@ -110,6 +110,23 @@ public class AuthService : IAuthService
         return Resultado<object>.Ok(new { }, "Verificación cancelada.");
     }
 
+    public async Task<Resultado<DisponibilidadUsuarioResponseDto>> VerificarDisponibilidadUsuarioAsync(string nombreUsuario, CancellationToken ct = default)
+    {
+        var nombre = nombreUsuario.Trim();
+        if (nombre.Length < 3)
+            return Resultado<DisponibilidadUsuarioResponseDto>.Error("El usuario debe tener al menos 3 caracteres");
+
+        if (!System.Text.RegularExpressions.Regex.IsMatch(nombre, @"^[a-zA-Z0-9_.]+$"))
+            return Resultado<DisponibilidadUsuarioResponseDto>.Error("Solo letras, números, punto y guion bajo");
+
+        var existe = await _usuarios.ExisteNombreUsuarioEnLookupAsync(nombre, ct);
+        return Resultado<DisponibilidadUsuarioResponseDto>.Ok(new DisponibilidadUsuarioResponseDto
+        {
+            NombreUsuario = nombre,
+            Disponible = !existe
+        }, existe ? "Usuario no disponible" : "Usuario disponible");
+    }
+
     public async Task<Resultado<AuthResponseDto>> LoginAsync(LoginRequestDto dto, CancellationToken ct = default)
     {
         var usuario = await _usuarios.ObtenerPorUsuarioOEmailAsync(dto.UsuarioOEmail.Trim(), ct);
