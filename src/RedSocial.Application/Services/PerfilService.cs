@@ -30,4 +30,15 @@ public class PerfilService : IPerfilService
             ? Resultado<MiPerfilDto>.Error("Perfil no encontrado")
             : Resultado<MiPerfilDto>.Ok(perfil, "Perfil actualizado.");
     }
+
+    public async Task<Resultado<MiPerfilDto>> ActualizarFotoPerfilAsync(int idUsuario, string fotoPerfilUrl, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(fotoPerfilUrl) || fotoPerfilUrl.Length > 500)
+            return Resultado<MiPerfilDto>.Error("La ruta de la foto no es valida.");
+
+        var perfil = await _perfiles.ActualizarFotoPerfilAsync(idUsuario, fotoPerfilUrl, ct);
+        return perfil is null
+            ? Resultado<MiPerfilDto>.Error("Perfil no encontrado")
+            : Resultado<MiPerfilDto>.Ok(perfil, "Foto de perfil actualizada.");
+    }
 }

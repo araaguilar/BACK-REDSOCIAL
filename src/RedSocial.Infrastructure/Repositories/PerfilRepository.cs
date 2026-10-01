@@ -21,6 +21,7 @@ public class PerfilRepository : IPerfilRepository
                 NombreUsuario = u.NombreUsuario,
                 NombrePerfil = u.Perfil != null ? u.Perfil.NombrePerfil : u.NombrePerfil,
                 SobreMi = u.Perfil != null ? u.Perfil.SobreMi : null,
+                FotoPerfilUrl = u.Perfil != null ? u.Perfil.FotoPerfilUrl : null,
                 Seguidores = _context.Seguidores.Count(s => s.IdSeguido == u.IdUsuario),
                 Seguidos = _context.Seguidores.Count(s => s.IdSeguidor == u.IdUsuario),
                 TotalMeEncanta = u.Perfil != null ? u.Perfil.TotalMeEncanta : 0
@@ -49,6 +50,35 @@ public class PerfilRepository : IPerfilRepository
         else
         {
             usuario.Perfil.SobreMi = sobreMi;
+            usuario.Perfil.FechaActualizacion = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync(ct);
+        return await ObtenerMiPerfilAsync(idUsuario, ct);
+    }
+
+    public async Task<MiPerfilDto?> ActualizarFotoPerfilAsync(int idUsuario, string fotoPerfilUrl, CancellationToken ct = default)
+    {
+        var usuario = await _context.Usuarios
+            .Include(u => u.Perfil)
+            .FirstOrDefaultAsync(u => u.IdUsuario == idUsuario, ct);
+
+        if (usuario is null) return null;
+
+        if (usuario.Perfil is null)
+        {
+            usuario.Perfil = new PerfilUsuario
+            {
+                IdUsuario = usuario.IdUsuario,
+                NombrePerfil = usuario.NombrePerfil,
+                FechaNacimiento = usuario.FechaNacimiento,
+                FotoPerfilUrl = fotoPerfilUrl,
+                FechaCreacion = DateTime.UtcNow
+            };
+        }
+        else
+        {
+            usuario.Perfil.FotoPerfilUrl = fotoPerfilUrl;
             usuario.Perfil.FechaActualizacion = DateTime.UtcNow;
         }
 

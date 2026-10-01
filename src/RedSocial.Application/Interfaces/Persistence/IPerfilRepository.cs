@@ -6,4 +6,5 @@ public interface IPerfilRepository
 {
     Task<MiPerfilDto?> ObtenerMiPerfilAsync(int idUsuario, CancellationToken ct = default);
     Task<MiPerfilDto?> ActualizarSobreMiAsync(int idUsuario, string? sobreMi, CancellationToken ct = default);
+    Task<MiPerfilDto?> ActualizarFotoPerfilAsync(int idUsuario, string fotoPerfilUrl, CancellationToken ct = default);
 }

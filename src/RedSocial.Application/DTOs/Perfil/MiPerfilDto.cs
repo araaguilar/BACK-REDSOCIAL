@@ -6,6 +6,7 @@ public class MiPerfilDto
     public string NombreUsuario { get; set; } = string.Empty;
     public string NombrePerfil { get; set; } = string.Empty;
     public string? SobreMi { get; set; }
+    public string? FotoPerfilUrl { get; set; }
     public int Seguidores { get; set; }
     public int Seguidos { get; set; }
     public int TotalMeEncanta { get; set; }
