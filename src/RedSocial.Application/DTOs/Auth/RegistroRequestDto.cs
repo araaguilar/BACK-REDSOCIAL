@@ -5,7 +5,7 @@ namespace RedSocial.Application.DTOs.Auth;
 public class RegistroRequestDto
 {
     [Required, StringLength(30, MinimumLength = 3)]
-    [RegularExpression(@"^[a-zA-Z0-9_.]+$", ErrorMessage = "Solo letras, números, punto y guion bajo")]
+    [RegularExpression(@"^(?=.*_)[a-zA-Z0-9_.]+$", ErrorMessage = "El usuario debe incluir al menos un guion bajo")]
     public string NombreUsuario { get; set; } = string.Empty;
 
     [Required, EmailAddress, MaxLength(100)]

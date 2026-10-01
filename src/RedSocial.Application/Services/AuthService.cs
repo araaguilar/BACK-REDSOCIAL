@@ -119,6 +119,9 @@ public class AuthService : IAuthService
         if (!System.Text.RegularExpressions.Regex.IsMatch(nombre, @"^[a-zA-Z0-9_.]+$"))
             return Resultado<DisponibilidadUsuarioResponseDto>.Error("Solo letras, números, punto y guion bajo");
 
+        if (!nombre.Contains('_'))
+            return Resultado<DisponibilidadUsuarioResponseDto>.Error("El usuario debe incluir al menos un guion bajo");
+
         var existe = await _usuarios.ExisteNombreUsuarioEnLookupAsync(nombre, ct);
         return Resultado<DisponibilidadUsuarioResponseDto>.Ok(new DisponibilidadUsuarioResponseDto
         {
