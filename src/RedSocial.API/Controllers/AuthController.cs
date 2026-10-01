@@ -64,7 +64,7 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> SolicitarRecuperacionPassword([FromBody] SolicitarRecuperacionPasswordRequestDto dto, CancellationToken ct)
     {
         var resultado = await _authService.SolicitarRecuperacionPasswordAsync(dto, ct);
-        return Ok(resultado);
+        return resultado.Exito ? Ok(resultado) : NotFound(resultado);
     }
 
     [HttpPost("recuperar-password/verificar-codigo")]

@@ -158,12 +158,8 @@ public class AuthService : IAuthService
         var email = NormalizarEmail(dto.Email);
         var usuario = await _usuarios.ObtenerPorEmailAsync(email, ct);
 
-        // Respuesta genérica para evitar enumeración de cuentas.
         if (usuario is null || !usuario.Activo)
-            return Resultado<SolicitarCodigoEmailResponseDto>.Ok(new SolicitarCodigoEmailResponseDto
-            {
-                ExpiraEnMinutos = CodigoExpiraEnMinutos
-            }, "Si el correo existe, enviaremos un código de recuperación.");
+            return Resultado<SolicitarCodigoEmailResponseDto>.Error("No existe ninguna cuenta ligada a este correo");
 
         await _recuperacionesPassword.InvalidarPendientesAsync(email, ct);
 
