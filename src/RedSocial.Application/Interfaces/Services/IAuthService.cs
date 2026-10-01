@@ -5,6 +5,8 @@ namespace RedSocial.Application.Interfaces.Services;
 
 public interface IAuthService
 {
+    Task<Resultado<SolicitarCodigoEmailResponseDto>> SolicitarCodigoEmailAsync(SolicitarCodigoEmailRequestDto dto, CancellationToken ct = default);
+    Task<Resultado<VerificarCodigoEmailResponseDto>> VerificarCodigoEmailAsync(VerificarCodigoEmailRequestDto dto, CancellationToken ct = default);
     Task<Resultado<AuthResponseDto>> LoginAsync(LoginRequestDto dto, CancellationToken ct = default);
     Task<Resultado<RegistroResponseDto>> RegistrarAsync(RegistroRequestDto dto, CancellationToken ct = default);
 }

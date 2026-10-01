@@ -11,7 +11,16 @@ public class RegistroRequestDto
     [Required, EmailAddress, MaxLength(100)]
     public string Email { get; set; } = string.Empty;
 
-    // Por ahora sin política de complejidad; solo el tope de 72 bytes que admite BCrypt.
-    [Required, MaxLength(72)]
+    [Required, StringLength(60, MinimumLength = 2)]
+    public string NombrePerfil { get; set; } = string.Empty;
+
+    [Required]
+    public DateOnly? FechaNacimiento { get; set; }
+
+    // Tope de 72 bytes que admite BCrypt.
+    [Required, MinLength(8), MaxLength(72)]
     public string Password { get; set; } = string.Empty;
+
+    [Required, StringLength(64, MinimumLength = 64)]
+    public string VerificationToken { get; set; } = string.Empty;
 }

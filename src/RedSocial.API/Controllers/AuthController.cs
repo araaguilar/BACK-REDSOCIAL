@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using RedSocial.Application.DTOs.Auth;
 using RedSocial.Application.Interfaces.Services;
 
@@ -22,6 +23,24 @@ public class AuthController : ControllerBase
         return resultado.Exito ? Ok(resultado) : Unauthorized(resultado);
     }
 
+    [HttpPost("registro/solicitar-codigo")]
+    [AllowAnonymous]
+    [EnableRateLimiting("Registro")]
+    public async Task<IActionResult> SolicitarCodigo([FromBody] SolicitarCodigoEmailRequestDto dto, CancellationToken ct)
+    {
+        var resultado = await _authService.SolicitarCodigoEmailAsync(dto, ct);
+        return resultado.Exito ? Ok(resultado) : Conflict(resultado);
+    }
+
+    [HttpPost("registro/verificar-codigo")]
+    [AllowAnonymous]
+    [EnableRateLimiting("Registro")]
+    public async Task<IActionResult> VerificarCodigo([FromBody] VerificarCodigoEmailRequestDto dto, CancellationToken ct)
+    {
+        var resultado = await _authService.VerificarCodigoEmailAsync(dto, ct);
+        return resultado.Exito ? Ok(resultado) : BadRequest(resultado);
+    }
+
     [HttpPost("registro")]
     [AllowAnonymous]
     public async Task<IActionResult> Registro([FromBody] RegistroRequestDto dto, CancellationToken ct)
@@ -37,6 +56,7 @@ public class AuthController : ControllerBase
     {
         IdUsuario = User.FindFirst("sub")?.Value,
         NombreUsuario = User.Identity?.Name,
-        Email = User.FindFirst("email")?.Value
+        Email = User.FindFirst("email")?.Value,
+        Rol = User.FindFirst("rol")?.Value
     });
 }
