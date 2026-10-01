@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using RedSocial.Application.DTOs.Perfil;
 using RedSocial.Application.Interfaces.Persistence;
+using RedSocial.Domain.Entities;
 using RedSocial.Infrastructure.Persistence;
 
 namespace RedSocial.Infrastructure.Repositories;
@@ -25,4 +26,33 @@ public class PerfilRepository : IPerfilRepository
                 TotalMeEncanta = u.Perfil != null ? u.Perfil.TotalMeEncanta : 0
             })
             .FirstOrDefaultAsync(ct);
+
+    public async Task<MiPerfilDto?> ActualizarSobreMiAsync(int idUsuario, string? sobreMi, CancellationToken ct = default)
+    {
+        var usuario = await _context.Usuarios
+            .Include(u => u.Perfil)
+            .FirstOrDefaultAsync(u => u.IdUsuario == idUsuario, ct);
+
+        if (usuario is null) return null;
+
+        if (usuario.Perfil is null)
+        {
+            usuario.Perfil = new PerfilUsuario
+            {
+                IdUsuario = usuario.IdUsuario,
+                NombrePerfil = usuario.NombrePerfil,
+                FechaNacimiento = usuario.FechaNacimiento,
+                SobreMi = sobreMi,
+                FechaCreacion = DateTime.UtcNow
+            };
+        }
+        else
+        {
+            usuario.Perfil.SobreMi = sobreMi;
+            usuario.Perfil.FechaActualizacion = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync(ct);
+        return await ObtenerMiPerfilAsync(idUsuario, ct);
+    }
 }
