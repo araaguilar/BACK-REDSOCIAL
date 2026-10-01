@@ -15,7 +15,7 @@ public class MomentoRepository : IMomentoRepository
     public async Task AgregarAsync(Momento momento, CancellationToken ct = default) =>
         await _context.Momentos.AddAsync(momento, ct);
 
-    public Task<List<MomentoFeedDto>> ObtenerFeedAsync(int cantidad = 30, CancellationToken ct = default)
+    public Task<List<MomentoFeedDto>> ObtenerFeedAsync(int idUsuarioActual, int cantidad = 30, CancellationToken ct = default)
     {
         var take = Math.Clamp(cantidad, 1, 50);
 
@@ -41,11 +41,12 @@ public class MomentoRepository : IMomentoRepository
                 LinkUrl = momento.LinkUrl,
                 TotalMeGusta = momento.TotalMeGusta,
                 TotalComentarios = momento.TotalComentarios,
+                LeGusta = _context.MeGustaMomentos.Any(mg => mg.IdMomento == momento.IdMomento && mg.IdUsuario == idUsuarioActual),
                 FechaCreacion = momento.FechaCreacion
             }).Take(take).ToListAsync(ct);
     }
 
-    public async Task<MomentosPaginadosDto> ObtenerPorUsuarioAsync(int idUsuario, int? cursor, int cantidad = 30, CancellationToken ct = default)
+    public async Task<MomentosPaginadosDto> ObtenerPorUsuarioAsync(int idUsuario, int idUsuarioActual, int? cursor, int cantidad = 30, CancellationToken ct = default)
     {
         var take = Math.Clamp(cantidad, 1, 30);
 
@@ -71,6 +72,7 @@ public class MomentoRepository : IMomentoRepository
                 LinkUrl = momento.LinkUrl,
                 TotalMeGusta = momento.TotalMeGusta,
                 TotalComentarios = momento.TotalComentarios,
+                LeGusta = _context.MeGustaMomentos.Any(mg => mg.IdMomento == momento.IdMomento && mg.IdUsuario == idUsuarioActual),
                 FechaCreacion = momento.FechaCreacion
             };
 
@@ -88,6 +90,78 @@ public class MomentoRepository : IMomentoRepository
             TieneMas = tieneMas,
             SiguienteCursor = tieneMas ? items.LastOrDefault()?.IdMomento : null,
             Total = total
+        };
+    }
+
+    public Task<MomentoFeedDto?> ObtenerPorIdAsync(int idMomento, int idUsuarioActual, CancellationToken ct = default)
+    {
+        return (
+            from momento in _context.Momentos.AsNoTracking()
+            join usuario in _context.Usuarios.AsNoTracking() on momento.IdUsuario equals usuario.IdUsuario
+            join perfil in _context.PerfilesUsuario.AsNoTracking() on usuario.IdUsuario equals perfil.IdUsuario into perfiles
+            from perfil in perfiles.DefaultIfEmpty()
+            where momento.Activo && momento.IdMomento == idMomento
+            select new MomentoFeedDto
+            {
+                IdMomento = momento.IdMomento,
+                IdUsuario = usuario.IdUsuario,
+                Autor = perfil != null ? perfil.NombrePerfil : usuario.NombrePerfil,
+                Usuario = "@" + usuario.NombreUsuario,
+                Avatar = perfil != null
+                    ? perfil.NombrePerfil.Substring(0, Math.Min(perfil.NombrePerfil.Length, 2)).ToUpper()
+                    : usuario.NombreUsuario.Substring(0, Math.Min(usuario.NombreUsuario.Length, 2)).ToUpper(),
+                Texto = momento.Texto,
+                TipoAdjunto = momento.TipoAdjunto,
+                ArchivoUrl = momento.ArchivoUrl,
+                LinkUrl = momento.LinkUrl,
+                TotalMeGusta = momento.TotalMeGusta,
+                TotalComentarios = momento.TotalComentarios,
+                LeGusta = _context.MeGustaMomentos.Any(mg => mg.IdMomento == momento.IdMomento && mg.IdUsuario == idUsuarioActual),
+                FechaCreacion = momento.FechaCreacion
+            }).FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<MeGustaMomentoDto?> AlternarMeGustaAsync(int idMomento, int idUsuario, CancellationToken ct = default)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(ct);
+
+        var momento = await _context.Momentos.FirstOrDefaultAsync(m => m.IdMomento == idMomento && m.Activo, ct);
+        if (momento is null) return null;
+
+        var existente = await _context.MeGustaMomentos
+            .FirstOrDefaultAsync(mg => mg.IdMomento == idMomento && mg.IdUsuario == idUsuario, ct);
+
+        var leGusta = existente is null;
+        var cambio = leGusta ? 1 : -1;
+
+        if (leGusta)
+        {
+            await _context.MeGustaMomentos.AddAsync(new MomentoMeGusta
+            {
+                IdMomento = idMomento,
+                IdUsuario = idUsuario,
+                FechaCreacion = DateTime.UtcNow
+            }, ct);
+        }
+        else
+        {
+            _context.MeGustaMomentos.Remove(existente!);
+        }
+
+        momento.TotalMeGusta = Math.Max(0, momento.TotalMeGusta + cambio);
+
+        var perfilAutor = await _context.PerfilesUsuario.FirstOrDefaultAsync(p => p.IdUsuario == momento.IdUsuario, ct);
+        if (perfilAutor is not null)
+            perfilAutor.TotalMeEncanta = Math.Max(0, perfilAutor.TotalMeEncanta + cambio);
+
+        await _context.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
+
+        return new MeGustaMomentoDto
+        {
+            IdMomento = idMomento,
+            LeGusta = leGusta,
+            TotalMeGusta = momento.TotalMeGusta
         };
     }
 

@@ -24,7 +24,10 @@ public class MomentosController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> Feed(CancellationToken ct)
     {
-        var resultado = await _momentoService.ObtenerFeedAsync(ct);
+        var idClaim = User.FindFirst("sub")?.Value;
+        if (!int.TryParse(idClaim, out var idUsuario)) return Unauthorized();
+
+        var resultado = await _momentoService.ObtenerFeedAsync(idUsuario, ct);
         return Ok(resultado);
     }
 
@@ -36,6 +39,16 @@ public class MomentosController : ControllerBase
 
         var resultado = await _momentoService.ObtenerMisMomentosAsync(idUsuario, cursor, cantidad, ct);
         return resultado.Exito ? Ok(resultado) : BadRequest(resultado);
+    }
+
+    [HttpPost("{idMomento:int}/me-encanta")]
+    public async Task<IActionResult> AlternarMeGusta(int idMomento, CancellationToken ct)
+    {
+        var idClaim = User.FindFirst("sub")?.Value;
+        if (!int.TryParse(idClaim, out var idUsuario)) return Unauthorized();
+
+        var resultado = await _momentoService.AlternarMeGustaAsync(idUsuario, idMomento, ct);
+        return resultado.Exito ? Ok(resultado) : NotFound(resultado);
     }
 
     [HttpPost]

@@ -52,7 +52,7 @@ public class MomentoService : IMomentoService
         await _momentos.AgregarAsync(momento, ct);
         await _momentos.GuardarCambiosAsync(ct);
 
-        var feed = await _momentos.ObtenerFeedAsync(1, ct);
+        var feed = await _momentos.ObtenerFeedAsync(idUsuario, 1, ct);
         var creado = feed.FirstOrDefault(m => m.IdMomento == momento.IdMomento) ?? new MomentoFeedDto
         {
             IdMomento = momento.IdMomento,
@@ -67,9 +67,9 @@ public class MomentoService : IMomentoService
         return Resultado<MomentoFeedDto>.Ok(creado, "Momento creado.");
     }
 
-    public async Task<Resultado<List<MomentoFeedDto>>> ObtenerFeedAsync(CancellationToken ct = default)
+    public async Task<Resultado<List<MomentoFeedDto>>> ObtenerFeedAsync(int idUsuarioActual, CancellationToken ct = default)
     {
-        var feed = await _momentos.ObtenerFeedAsync(30, ct);
+        var feed = await _momentos.ObtenerFeedAsync(idUsuarioActual, 30, ct);
         return Resultado<List<MomentoFeedDto>>.Ok(feed);
     }
 
@@ -78,7 +78,18 @@ public class MomentoService : IMomentoService
         if (!await _usuarios.ExistePorIdAsync(idUsuario, ct))
             return Resultado<MomentosPaginadosDto>.Error("No se encontro el usuario.");
 
-        var momentos = await _momentos.ObtenerPorUsuarioAsync(idUsuario, cursor, cantidad, ct);
+        var momentos = await _momentos.ObtenerPorUsuarioAsync(idUsuario, idUsuario, cursor, cantidad, ct);
         return Resultado<MomentosPaginadosDto>.Ok(momentos);
+    }
+
+    public async Task<Resultado<MeGustaMomentoDto>> AlternarMeGustaAsync(int idUsuario, int idMomento, CancellationToken ct = default)
+    {
+        if (!await _usuarios.ExistePorIdAsync(idUsuario, ct))
+            return Resultado<MeGustaMomentoDto>.Error("No se encontro el usuario.");
+
+        var resultado = await _momentos.AlternarMeGustaAsync(idMomento, idUsuario, ct);
+        return resultado is null
+            ? Resultado<MeGustaMomentoDto>.Error("No se encontro el momento.")
+            : Resultado<MeGustaMomentoDto>.Ok(resultado);
     }
 }
