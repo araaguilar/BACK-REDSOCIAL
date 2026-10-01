@@ -33,6 +33,15 @@ public class EmailVerificationRepository : IEmailVerificationRepository
         }
     }
 
+    public async Task EliminarPendientesAsync(string email, CancellationToken ct = default)
+    {
+        var pendientes = await _context.VerificacionesEmail
+            .Where(v => v.Email == email && !v.Usado)
+            .ToListAsync(ct);
+
+        _context.VerificacionesEmail.RemoveRange(pendientes);
+    }
+
     public async Task AgregarAsync(VerificacionEmail verificacion, CancellationToken ct = default) =>
         await _context.VerificacionesEmail.AddAsync(verificacion, ct);
 

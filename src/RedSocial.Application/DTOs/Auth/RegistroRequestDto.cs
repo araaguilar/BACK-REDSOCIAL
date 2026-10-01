@@ -19,6 +19,7 @@ public class RegistroRequestDto
 
     // Tope de 72 bytes que admite BCrypt.
     [Required, MinLength(8), MaxLength(72)]
+    [RegularExpression(@"^(?=.*[A-ZÁÉÍÓÚÑ])(?=.*[^A-Za-z0-9ÁÉÍÓÚáéíóúÑñ]).{8,}$", ErrorMessage = "La contraseña debe tener al menos 8 caracteres, una mayúscula y un carácter especial")]
     public string Password { get; set; } = string.Empty;
 
     [Required, StringLength(64, MinimumLength = 64)]

@@ -101,6 +101,15 @@ public class AuthService : IAuthService
         }, "Correo verificado correctamente.");
     }
 
+    public async Task<Resultado<object>> CancelarCodigoEmailAsync(SolicitarCodigoEmailRequestDto dto, CancellationToken ct = default)
+    {
+        var email = NormalizarEmail(dto.Email);
+        await _verificaciones.EliminarPendientesAsync(email, ct);
+        await _verificaciones.GuardarCambiosAsync(ct);
+
+        return Resultado<object>.Ok(new { }, "Verificación cancelada.");
+    }
+
     public async Task<Resultado<AuthResponseDto>> LoginAsync(LoginRequestDto dto, CancellationToken ct = default)
     {
         var usuario = await _usuarios.ObtenerPorUsuarioOEmailAsync(dto.UsuarioOEmail.Trim(), ct);

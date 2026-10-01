@@ -41,6 +41,15 @@ public class AuthController : ControllerBase
         return resultado.Exito ? Ok(resultado) : BadRequest(resultado);
     }
 
+    [HttpPost("registro/cancelar-codigo")]
+    [AllowAnonymous]
+    [EnableRateLimiting("Registro")]
+    public async Task<IActionResult> CancelarCodigo([FromBody] SolicitarCodigoEmailRequestDto dto, CancellationToken ct)
+    {
+        var resultado = await _authService.CancelarCodigoEmailAsync(dto, ct);
+        return Ok(resultado);
+    }
+
     [HttpPost("registro")]
     [AllowAnonymous]
     public async Task<IActionResult> Registro([FromBody] RegistroRequestDto dto, CancellationToken ct)
