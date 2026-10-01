@@ -58,7 +58,12 @@ public class MomentosController : ControllerBase
     private async Task<(string? Url, string? Error)> GuardarArchivoAsync(IFormFile? archivo, string? tipoAdjunto, CancellationToken ct)
     {
         if (archivo is null || archivo.Length == 0)
+        {
+            if (tipoAdjunto is "foto" or "video")
+                return (null, "Selecciona el archivo que quieres compartir.");
+
             return (null, null);
+        }
 
         if (tipoAdjunto is not ("foto" or "video"))
             return (null, "Selecciona si el archivo es foto o video.");
