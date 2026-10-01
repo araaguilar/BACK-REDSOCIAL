@@ -15,4 +15,5 @@ public class Usuario
     public bool Activo { get; set; } = true;
     public DateTime FechaRegistro { get; set; } = DateTime.UtcNow;
     public DateTime? UltimoLogin { get; set; }
+    public PerfilUsuario? Perfil { get; set; }
 }

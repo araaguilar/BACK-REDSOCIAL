@@ -19,6 +19,7 @@ public class AuthService : IAuthService
     private const string CodigoInvalido = "Código inválido o expirado";
 
     private readonly IUsuarioRepository _usuarios;
+    private readonly IPerfilUsuarioRepository _perfiles;
     private readonly IEmailVerificationRepository _verificaciones;
     private readonly IPasswordHasher _hasher;
     private readonly IJwtGenerator _jwt;
@@ -26,12 +27,14 @@ public class AuthService : IAuthService
 
     public AuthService(
         IUsuarioRepository usuarios,
+        IPerfilUsuarioRepository perfiles,
         IEmailVerificationRepository verificaciones,
         IPasswordHasher hasher,
         IJwtGenerator jwt,
         IEmailSender emailSender)
     {
         _usuarios = usuarios;
+        _perfiles = perfiles;
         _verificaciones = verificaciones;
         _hasher = hasher;
         _jwt = jwt;
@@ -202,6 +205,12 @@ public class AuthService : IAuthService
         };
 
         await _usuarios.AgregarAsync(usuario, ct);
+        await _perfiles.AgregarAsync(new PerfilUsuario
+        {
+            Usuario = usuario,
+            NombrePerfil = nombrePerfil,
+            FechaNacimiento = dto.FechaNacimiento.Value
+        }, ct);
         verificacion.Usado = true;
         await _usuarios.GuardarCambiosAsync(ct);
 
