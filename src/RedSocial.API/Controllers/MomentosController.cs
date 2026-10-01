@@ -28,6 +28,16 @@ public class MomentosController : ControllerBase
         return Ok(resultado);
     }
 
+    [HttpGet("me")]
+    public async Task<IActionResult> MisMomentos([FromQuery] int? cursor, [FromQuery] int cantidad = 30, CancellationToken ct = default)
+    {
+        var idClaim = User.FindFirst("sub")?.Value;
+        if (!int.TryParse(idClaim, out var idUsuario)) return Unauthorized();
+
+        var resultado = await _momentoService.ObtenerMisMomentosAsync(idUsuario, cursor, cantidad, ct);
+        return resultado.Exito ? Ok(resultado) : BadRequest(resultado);
+    }
+
     [HttpPost]
     [RequestSizeLimit(15 * 1024 * 1024)]
     public async Task<IActionResult> Crear([FromForm] CrearMomentoForm request, CancellationToken ct)

@@ -72,4 +72,13 @@ public class MomentoService : IMomentoService
         var feed = await _momentos.ObtenerFeedAsync(30, ct);
         return Resultado<List<MomentoFeedDto>>.Ok(feed);
     }
+
+    public async Task<Resultado<MomentosPaginadosDto>> ObtenerMisMomentosAsync(int idUsuario, int? cursor, int cantidad = 30, CancellationToken ct = default)
+    {
+        if (!await _usuarios.ExistePorIdAsync(idUsuario, ct))
+            return Resultado<MomentosPaginadosDto>.Error("No se encontro el usuario.");
+
+        var momentos = await _momentos.ObtenerPorUsuarioAsync(idUsuario, cursor, cantidad, ct);
+        return Resultado<MomentosPaginadosDto>.Ok(momentos);
+    }
 }
