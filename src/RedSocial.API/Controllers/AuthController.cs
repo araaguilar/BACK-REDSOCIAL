@@ -66,6 +66,14 @@ public class AuthController : ControllerBase
         return resultado.Exito ? Ok(resultado) : BadRequest(resultado);
     }
 
+    [HttpGet("registro/email-disponible")]
+    [AllowAnonymous]
+    public async Task<IActionResult> EmailDisponible([FromQuery] string email, CancellationToken ct)
+    {
+        var resultado = await _authService.VerificarDisponibilidadEmailAsync(email, ct);
+        return resultado.Exito ? Ok(resultado) : BadRequest(resultado);
+    }
+
     // Endpoint protegido para comprobar que el JWT funciona.
     [HttpGet("perfil")]
     [Authorize]

@@ -29,6 +29,11 @@ public class UsuarioRepository : IUsuarioRepository
     public Task<bool> ExisteEmailAsync(string email, CancellationToken ct = default) =>
         _context.Usuarios.AnyAsync(u => u.Email == email, ct);
 
+    public Task<bool> ExisteEmailEnLookupAsync(string email, CancellationToken ct = default) =>
+        _context.Database
+            .SqlQuery<int>($"SELECT 1 AS Value FROM dbo.vw_EmailsLookup WHERE Email = {email}")
+            .AnyAsync(ct);
+
     public async Task AgregarAsync(Usuario usuario, CancellationToken ct = default) =>
         await _context.Usuarios.AddAsync(usuario, ct);
 

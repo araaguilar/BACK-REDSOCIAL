@@ -132,6 +132,20 @@ public class AuthService : IAuthService
         }, existe ? "Usuario no disponible" : "Usuario disponible");
     }
 
+    public async Task<Resultado<DisponibilidadEmailResponseDto>> VerificarDisponibilidadEmailAsync(string email, CancellationToken ct = default)
+    {
+        var normalizado = NormalizarEmail(email);
+        if (!System.Text.RegularExpressions.Regex.IsMatch(normalizado, @"^[^\s@]+@[^\s@]+\.[^\s@]+$"))
+            return Resultado<DisponibilidadEmailResponseDto>.Error("Ingresa un correo válido");
+
+        var existe = await _usuarios.ExisteEmailEnLookupAsync(normalizado, ct);
+        return Resultado<DisponibilidadEmailResponseDto>.Ok(new DisponibilidadEmailResponseDto
+        {
+            Email = normalizado,
+            Disponible = !existe
+        }, existe ? "Correo no disponible" : "Correo disponible");
+    }
+
     public async Task<Resultado<AuthResponseDto>> LoginAsync(LoginRequestDto dto, CancellationToken ct = default)
     {
         var usuario = await _usuarios.ObtenerPorUsuarioOEmailAsync(dto.UsuarioOEmail.Trim(), ct);
