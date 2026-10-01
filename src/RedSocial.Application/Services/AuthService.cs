@@ -15,12 +15,14 @@ public class AuthService : IAuthService
     private const string CredencialesInvalidas = "Usuario o contraseña incorrectos";
     private const int CodigoExpiraEnMinutos = 10;
     private const int RegistroExpiraEnMinutos = 45;
+    private const int RecuperacionExpiraEnMinutos = 20;
     private const int IntentosMaximosCodigo = 5;
     private const string CodigoInvalido = "Código inválido o expirado";
 
     private readonly IUsuarioRepository _usuarios;
     private readonly IPerfilUsuarioRepository _perfiles;
     private readonly IEmailVerificationRepository _verificaciones;
+    private readonly IRecuperacionPasswordRepository _recuperacionesPassword;
     private readonly IPasswordHasher _hasher;
     private readonly IJwtGenerator _jwt;
     private readonly IEmailSender _emailSender;
@@ -29,6 +31,7 @@ public class AuthService : IAuthService
         IUsuarioRepository usuarios,
         IPerfilUsuarioRepository perfiles,
         IEmailVerificationRepository verificaciones,
+        IRecuperacionPasswordRepository recuperacionesPassword,
         IPasswordHasher hasher,
         IJwtGenerator jwt,
         IEmailSender emailSender)
@@ -36,6 +39,7 @@ public class AuthService : IAuthService
         _usuarios = usuarios;
         _perfiles = perfiles;
         _verificaciones = verificaciones;
+        _recuperacionesPassword = recuperacionesPassword;
         _hasher = hasher;
         _jwt = jwt;
         _emailSender = emailSender;
@@ -147,6 +151,95 @@ public class AuthService : IAuthService
             Email = normalizado,
             Disponible = !existe
         }, existe ? "Correo no disponible" : "Correo disponible");
+    }
+
+    public async Task<Resultado<SolicitarCodigoEmailResponseDto>> SolicitarRecuperacionPasswordAsync(SolicitarRecuperacionPasswordRequestDto dto, CancellationToken ct = default)
+    {
+        var email = NormalizarEmail(dto.Email);
+        var usuario = await _usuarios.ObtenerPorEmailAsync(email, ct);
+
+        // Respuesta genérica para evitar enumeración de cuentas.
+        if (usuario is null || !usuario.Activo)
+            return Resultado<SolicitarCodigoEmailResponseDto>.Ok(new SolicitarCodigoEmailResponseDto
+            {
+                ExpiraEnMinutos = CodigoExpiraEnMinutos
+            }, "Si el correo existe, enviaremos un código de recuperación.");
+
+        await _recuperacionesPassword.InvalidarPendientesAsync(email, ct);
+
+        var codigo = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
+        var token = CrearTokenSeguro();
+
+        var recuperacion = new RecuperacionPassword
+        {
+            IdUsuario = usuario.IdUsuario,
+            Email = email,
+            CodigoHash = CrearHashCodigo(email, codigo, token),
+            TokenRecuperacion = token,
+            ExpiraEn = DateTime.UtcNow.AddMinutes(CodigoExpiraEnMinutos)
+        };
+
+        await _recuperacionesPassword.AgregarAsync(recuperacion, ct);
+        await _recuperacionesPassword.GuardarCambiosAsync(ct);
+        await _emailSender.EnviarCodigoVerificacionAsync(email, codigo, ct);
+
+        return Resultado<SolicitarCodigoEmailResponseDto>.Ok(new SolicitarCodigoEmailResponseDto
+        {
+            ExpiraEnMinutos = CodigoExpiraEnMinutos
+        }, "Si el correo existe, enviaremos un código de recuperación.");
+    }
+
+    public async Task<Resultado<VerificarRecuperacionPasswordResponseDto>> VerificarRecuperacionPasswordAsync(VerificarRecuperacionPasswordRequestDto dto, CancellationToken ct = default)
+    {
+        var email = NormalizarEmail(dto.Email);
+        var recuperacion = await _recuperacionesPassword.ObtenerActivaPorEmailAsync(email, ct);
+
+        if (recuperacion is null)
+            return Resultado<VerificarRecuperacionPasswordResponseDto>.Error(CodigoInvalido);
+
+        if (recuperacion.IntentosFallidos >= IntentosMaximosCodigo)
+        {
+            recuperacion.Usado = true;
+            await _recuperacionesPassword.GuardarCambiosAsync(ct);
+            return Resultado<VerificarRecuperacionPasswordResponseDto>.Error(CodigoInvalido);
+        }
+
+        var hashRecibido = CrearHashCodigo(email, dto.Codigo.Trim(), recuperacion.TokenRecuperacion);
+        if (!CryptographicOperations.FixedTimeEquals(
+                Encoding.UTF8.GetBytes(hashRecibido),
+                Encoding.UTF8.GetBytes(recuperacion.CodigoHash)))
+        {
+            recuperacion.IntentosFallidos++;
+            await _recuperacionesPassword.GuardarCambiosAsync(ct);
+            return Resultado<VerificarRecuperacionPasswordResponseDto>.Error(CodigoInvalido);
+        }
+
+        recuperacion.FechaVerificacion = DateTime.UtcNow;
+        recuperacion.ExpiraEn = DateTime.UtcNow.AddMinutes(RecuperacionExpiraEnMinutos);
+        await _recuperacionesPassword.GuardarCambiosAsync(ct);
+
+        return Resultado<VerificarRecuperacionPasswordResponseDto>.Ok(new VerificarRecuperacionPasswordResponseDto
+        {
+            RecoveryToken = recuperacion.TokenRecuperacion
+        }, "Código verificado correctamente.");
+    }
+
+    public async Task<Resultado<object>> CambiarPasswordAsync(CambiarPasswordRequestDto dto, CancellationToken ct = default)
+    {
+        var email = NormalizarEmail(dto.Email);
+        var recuperacion = await _recuperacionesPassword.ObtenerVerificadaPorTokenAsync(dto.RecoveryToken.Trim(), ct);
+        if (recuperacion is null || recuperacion.Email != email)
+            return Resultado<object>.Error("La recuperación expiró. Solicita un nuevo código.");
+
+        var usuario = await _usuarios.ObtenerPorEmailAsync(email, ct);
+        if (usuario is null || usuario.IdUsuario != recuperacion.IdUsuario || !usuario.Activo)
+            return Resultado<object>.Error("La recuperación expiró. Solicita un nuevo código.");
+
+        usuario.PasswordHash = _hasher.Hash(dto.NuevaPassword);
+        recuperacion.Usado = true;
+        await _usuarios.GuardarCambiosAsync(ct);
+
+        return Resultado<object>.Ok(new { }, "Contraseña actualizada correctamente.");
     }
 
     public async Task<Resultado<AuthResponseDto>> LoginAsync(LoginRequestDto dto, CancellationToken ct = default)

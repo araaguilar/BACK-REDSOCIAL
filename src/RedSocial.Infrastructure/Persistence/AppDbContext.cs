@@ -10,6 +10,7 @@ public class AppDbContext : DbContext
     public DbSet<Usuario> Usuarios => Set<Usuario>();
     public DbSet<PerfilUsuario> PerfilesUsuario => Set<PerfilUsuario>();
     public DbSet<VerificacionEmail> VerificacionesEmail => Set<VerificacionEmail>();
+    public DbSet<RecuperacionPassword> RecuperacionesPassword => Set<RecuperacionPassword>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

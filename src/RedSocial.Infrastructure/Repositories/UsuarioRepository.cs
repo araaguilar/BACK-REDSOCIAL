@@ -18,6 +18,12 @@ public class UsuarioRepository : IUsuarioRepository
         return _context.Usuarios.FirstOrDefaultAsync(u => u.NombreUsuario == usuarioOEmail || u.Email == email, ct);
     }
 
+    public Task<Usuario?> ObtenerPorEmailAsync(string email, CancellationToken ct = default)
+    {
+        var normalizado = email.ToLowerInvariant();
+        return _context.Usuarios.FirstOrDefaultAsync(u => u.Email == normalizado, ct);
+    }
+
     public Task<bool> ExisteNombreUsuarioAsync(string nombreUsuario, CancellationToken ct = default) =>
         _context.Usuarios.AnyAsync(u => u.NombreUsuario == nombreUsuario, ct);
 

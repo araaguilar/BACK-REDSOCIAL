@@ -58,6 +58,33 @@ public class AuthController : ControllerBase
         return resultado.Exito ? Ok(resultado) : Conflict(resultado);
     }
 
+    [HttpPost("recuperar-password/solicitar-codigo")]
+    [AllowAnonymous]
+    [EnableRateLimiting("Registro")]
+    public async Task<IActionResult> SolicitarRecuperacionPassword([FromBody] SolicitarRecuperacionPasswordRequestDto dto, CancellationToken ct)
+    {
+        var resultado = await _authService.SolicitarRecuperacionPasswordAsync(dto, ct);
+        return Ok(resultado);
+    }
+
+    [HttpPost("recuperar-password/verificar-codigo")]
+    [AllowAnonymous]
+    [EnableRateLimiting("Registro")]
+    public async Task<IActionResult> VerificarRecuperacionPassword([FromBody] VerificarRecuperacionPasswordRequestDto dto, CancellationToken ct)
+    {
+        var resultado = await _authService.VerificarRecuperacionPasswordAsync(dto, ct);
+        return resultado.Exito ? Ok(resultado) : BadRequest(resultado);
+    }
+
+    [HttpPost("recuperar-password/cambiar")]
+    [AllowAnonymous]
+    [EnableRateLimiting("Registro")]
+    public async Task<IActionResult> CambiarPassword([FromBody] CambiarPasswordRequestDto dto, CancellationToken ct)
+    {
+        var resultado = await _authService.CambiarPasswordAsync(dto, ct);
+        return resultado.Exito ? Ok(resultado) : BadRequest(resultado);
+    }
+
     [HttpGet("registro/usuario-disponible/{nombreUsuario}")]
     [AllowAnonymous]
     public async Task<IActionResult> UsuarioDisponible([FromRoute] string nombreUsuario, CancellationToken ct)
