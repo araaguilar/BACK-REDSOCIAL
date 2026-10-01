@@ -40,6 +40,9 @@ public class UsuarioRepository : IUsuarioRepository
             .SqlQuery<int>($"SELECT 1 AS Value FROM dbo.vw_EmailsLookup WHERE Email = {email}")
             .AnyAsync(ct);
 
+    public Task<bool> ExistePorIdAsync(int idUsuario, CancellationToken ct = default) =>
+        _context.Usuarios.AnyAsync(u => u.IdUsuario == idUsuario, ct);
+
     public async Task AgregarAsync(Usuario usuario, CancellationToken ct = default) =>
         await _context.Usuarios.AddAsync(usuario, ct);
 

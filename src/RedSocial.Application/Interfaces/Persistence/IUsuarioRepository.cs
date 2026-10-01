@@ -10,6 +10,7 @@ public interface IUsuarioRepository
     Task<bool> ExisteNombreUsuarioEnLookupAsync(string nombreUsuario, CancellationToken ct = default);
     Task<bool> ExisteEmailAsync(string email, CancellationToken ct = default);
     Task<bool> ExisteEmailEnLookupAsync(string email, CancellationToken ct = default);
+    Task<bool> ExistePorIdAsync(int idUsuario, CancellationToken ct = default);
     Task AgregarAsync(Usuario usuario, CancellationToken ct = default);
     Task GuardarCambiosAsync(CancellationToken ct = default);
 }

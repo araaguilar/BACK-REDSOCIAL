@@ -9,6 +9,8 @@ public class AppDbContext : DbContext
 
     public DbSet<Usuario> Usuarios => Set<Usuario>();
     public DbSet<PerfilUsuario> PerfilesUsuario => Set<PerfilUsuario>();
+    public DbSet<Seguidor> Seguidores => Set<Seguidor>();
+    public DbSet<Momento> Momentos => Set<Momento>();
     public DbSet<VerificacionEmail> VerificacionesEmail => Set<VerificacionEmail>();
     public DbSet<RecuperacionPassword> RecuperacionesPassword => Set<RecuperacionPassword>();
 

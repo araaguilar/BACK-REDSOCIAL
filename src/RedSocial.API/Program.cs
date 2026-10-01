@@ -98,6 +98,7 @@ else
     app.UseHttpsRedirection();
 }
 
+app.UseStaticFiles();
 app.UseCors("Frontend");
 app.UseRateLimiter();
 app.UseAuthentication();
