@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
     public DbSet<Seguidor> Seguidores => Set<Seguidor>();
     public DbSet<Momento> Momentos => Set<Momento>();
     public DbSet<MomentoMeGusta> MeGustaMomentos => Set<MomentoMeGusta>();
+    public DbSet<HistorialCambioPerfil> HistorialCambiosPerfil => Set<HistorialCambioPerfil>();
     public DbSet<VerificacionEmail> VerificacionesEmail => Set<VerificacionEmail>();
     public DbSet<RecuperacionPassword> RecuperacionesPassword => Set<RecuperacionPassword>();
 

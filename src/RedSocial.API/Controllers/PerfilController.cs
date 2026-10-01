@@ -40,6 +40,26 @@ public class PerfilController : ControllerBase
         return resultado.Exito ? Ok(resultado) : BadRequest(resultado);
     }
 
+    [HttpPut("nombre-perfil")]
+    public async Task<IActionResult> ActualizarNombrePerfil([FromBody] ActualizarNombrePerfilRequestDto request, CancellationToken ct)
+    {
+        var idClaim = User.FindFirst("sub")?.Value;
+        if (!int.TryParse(idClaim, out var idUsuario)) return Unauthorized();
+
+        var resultado = await _perfilService.ActualizarNombrePerfilAsync(idUsuario, request.NombrePerfil, ct);
+        return resultado.Exito ? Ok(resultado) : BadRequest(resultado);
+    }
+
+    [HttpPut("nombre-usuario")]
+    public async Task<IActionResult> ActualizarNombreUsuario([FromBody] ActualizarNombreUsuarioRequestDto request, CancellationToken ct)
+    {
+        var idClaim = User.FindFirst("sub")?.Value;
+        if (!int.TryParse(idClaim, out var idUsuario)) return Unauthorized();
+
+        var resultado = await _perfilService.ActualizarNombreUsuarioAsync(idUsuario, request.NombreUsuario, ct);
+        return resultado.Exito ? Ok(resultado) : BadRequest(resultado);
+    }
+
     [HttpPost("foto")]
     [RequestSizeLimit(5 * 1024 * 1024)]
     public async Task<IActionResult> ActualizarFoto([FromForm] FotoPerfilForm request, CancellationToken ct)

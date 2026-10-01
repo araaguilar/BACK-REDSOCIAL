@@ -10,4 +10,6 @@ public class MiPerfilDto
     public int Seguidores { get; set; }
     public int Seguidos { get; set; }
     public int TotalMeEncanta { get; set; }
+    public DateTime? ProximoCambioNombrePerfil { get; set; }
+    public DateTime? ProximoCambioNombreUsuario { get; set; }
 }
