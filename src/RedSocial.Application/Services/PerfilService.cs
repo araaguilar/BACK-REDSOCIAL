@@ -26,6 +26,32 @@ public class PerfilService : IPerfilService
             : Resultado<MiPerfilDto>.Ok(perfil);
     }
 
+    public async Task<Resultado<PerfilPublicoDto>> ObtenerPerfilPublicoAsync(string nombreUsuario, int idUsuarioActual, CancellationToken ct = default)
+    {
+        var usuario = nombreUsuario.Trim().TrimStart('@').ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(usuario))
+            return Resultado<PerfilPublicoDto>.Error("Perfil no encontrado");
+
+        var perfil = await _perfiles.ObtenerPerfilPublicoAsync(usuario, idUsuarioActual, ct);
+        return perfil is null
+            ? Resultado<PerfilPublicoDto>.Error("Perfil no encontrado")
+            : Resultado<PerfilPublicoDto>.Ok(perfil);
+    }
+
+    public async Task<Resultado<SeguimientoPerfilDto>> AlternarSeguimientoAsync(int idSeguidor, int idSeguido, CancellationToken ct = default)
+    {
+        if (idSeguidor == idSeguido)
+            return Resultado<SeguimientoPerfilDto>.Error("No puedes seguir tu propio perfil.");
+
+        var seguimiento = await _perfiles.AlternarSeguimientoAsync(idSeguidor, idSeguido, ct);
+        if (seguimiento is null)
+            return Resultado<SeguimientoPerfilDto>.Error("Perfil no encontrado");
+
+        return Resultado<SeguimientoPerfilDto>.Ok(
+            seguimiento,
+            seguimiento.Siguiendo ? "Ahora sigues este perfil." : "Dejaste de seguir este perfil.");
+    }
+
     public async Task<Resultado<MiPerfilDto>> ActualizarSobreMiAsync(int idUsuario, string? sobreMi, CancellationToken ct = default)
     {
         var texto = string.IsNullOrWhiteSpace(sobreMi) ? null : sobreMi.Trim();

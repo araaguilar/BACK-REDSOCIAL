@@ -15,7 +15,7 @@ public class BusquedaService : IBusquedaService
     {
         var q = termino?.Trim().TrimStart('@') ?? string.Empty;
 
-        var perfiles = await _busqueda.BuscarPerfilesAsync(q, 12, ct);
+        var perfiles = await _busqueda.BuscarPerfilesAsync(q, idUsuarioActual, 12, ct);
         var momentos = await _busqueda.BuscarMomentosAsync(q, idUsuarioActual, 18, ct);
 
         return Resultado<ResultadoBusquedaDto>.Ok(new ResultadoBusquedaDto

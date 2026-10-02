@@ -30,6 +30,26 @@ public class PerfilController : ControllerBase
         return resultado.Exito ? Ok(resultado) : NotFound(resultado);
     }
 
+    [HttpGet("{nombreUsuario}")]
+    public async Task<IActionResult> Publico(string nombreUsuario, CancellationToken ct)
+    {
+        var idClaim = User.FindFirst("sub")?.Value;
+        if (!int.TryParse(idClaim, out var idUsuario)) return Unauthorized();
+
+        var resultado = await _perfilService.ObtenerPerfilPublicoAsync(nombreUsuario, idUsuario, ct);
+        return resultado.Exito ? Ok(resultado) : NotFound(resultado);
+    }
+
+    [HttpPost("{idUsuario:int}/seguimiento")]
+    public async Task<IActionResult> AlternarSeguimiento(int idUsuario, CancellationToken ct)
+    {
+        var idClaim = User.FindFirst("sub")?.Value;
+        if (!int.TryParse(idClaim, out var idSeguidor)) return Unauthorized();
+
+        var resultado = await _perfilService.AlternarSeguimientoAsync(idSeguidor, idUsuario, ct);
+        return resultado.Exito ? Ok(resultado) : BadRequest(resultado);
+    }
+
     [HttpPut("sobre-mi")]
     public async Task<IActionResult> ActualizarSobreMi([FromBody] ActualizarSobreMiRequestDto request, CancellationToken ct)
     {

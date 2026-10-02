@@ -12,14 +12,14 @@ public class BusquedaRepository : IBusquedaRepository
 
     public BusquedaRepository(AppDbContext context) => _context = context;
 
-    public Task<List<PerfilBusquedaDto>> BuscarPerfilesAsync(string termino, int cantidad = 12, CancellationToken ct = default)
+    public Task<List<PerfilBusquedaDto>> BuscarPerfilesAsync(string termino, int idUsuarioActual, int cantidad = 12, CancellationToken ct = default)
     {
         var take = Math.Clamp(cantidad, 1, 30);
         var q = termino.ToLowerInvariant();
 
         return _context.Usuarios
             .AsNoTracking()
-            .Where(u => u.Activo)
+            .Where(u => u.Activo && u.IdUsuario != idUsuarioActual)
             .Select(u => new
             {
                 u.IdUsuario,
@@ -39,7 +39,9 @@ public class BusquedaRepository : IBusquedaRepository
                 NombreUsuario = u.NombreUsuario,
                 NombrePerfil = u.NombrePerfil,
                 SobreMi = u.SobreMi,
-                FotoPerfilUrl = u.FotoPerfilUrl
+                FotoPerfilUrl = u.FotoPerfilUrl,
+                Siguiendo = _context.Seguidores.Any(s => s.IdSeguidor == idUsuarioActual && s.IdSeguido == u.IdUsuario),
+                Seguidores = _context.Seguidores.Count(s => s.IdSeguido == u.IdUsuario)
             })
             .ToListAsync(ct);
     }

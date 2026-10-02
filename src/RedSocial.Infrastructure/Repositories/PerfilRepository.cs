@@ -38,6 +38,60 @@ public class PerfilRepository : IPerfilRepository
             })
             .FirstOrDefaultAsync(ct);
 
+    public Task<PerfilPublicoDto?> ObtenerPerfilPublicoAsync(string nombreUsuario, int idUsuarioActual, CancellationToken ct = default) =>
+        _context.Usuarios
+            .AsNoTracking()
+            .Where(u => u.Activo && u.NombreUsuario == nombreUsuario)
+            .Select(u => new PerfilPublicoDto
+            {
+                IdUsuario = u.IdUsuario,
+                NombreUsuario = u.NombreUsuario,
+                NombrePerfil = u.Perfil != null ? u.Perfil.NombrePerfil : u.NombrePerfil,
+                SobreMi = u.Perfil != null ? u.Perfil.SobreMi : null,
+                FotoPerfilUrl = u.Perfil != null ? u.Perfil.FotoPerfilUrl : null,
+                Seguidores = _context.Seguidores.Count(s => s.IdSeguido == u.IdUsuario),
+                Seguidos = _context.Seguidores.Count(s => s.IdSeguidor == u.IdUsuario),
+                TotalMeEncanta = u.Perfil != null ? u.Perfil.TotalMeEncanta : 0,
+                Siguiendo = _context.Seguidores.Any(s => s.IdSeguidor == idUsuarioActual && s.IdSeguido == u.IdUsuario)
+            })
+            .FirstOrDefaultAsync(ct);
+
+    public async Task<SeguimientoPerfilDto?> AlternarSeguimientoAsync(int idSeguidor, int idSeguido, CancellationToken ct = default)
+    {
+        var existeSeguido = await _context.Usuarios
+            .AsNoTracking()
+            .AnyAsync(u => u.IdUsuario == idSeguido && u.Activo, ct);
+
+        if (!existeSeguido) return null;
+
+        var relacion = await _context.Seguidores
+            .FirstOrDefaultAsync(s => s.IdSeguidor == idSeguidor && s.IdSeguido == idSeguido, ct);
+
+        var siguiendo = relacion is null;
+        if (relacion is null)
+        {
+            await _context.Seguidores.AddAsync(new Seguidor
+            {
+                IdSeguidor = idSeguidor,
+                IdSeguido = idSeguido,
+                FechaSeguimiento = DateTime.UtcNow
+            }, ct);
+        }
+        else
+        {
+            _context.Seguidores.Remove(relacion);
+        }
+
+        await _context.SaveChangesAsync(ct);
+
+        return new SeguimientoPerfilDto
+        {
+            IdUsuario = idSeguido,
+            Siguiendo = siguiendo,
+            Seguidores = await _context.Seguidores.CountAsync(s => s.IdSeguido == idSeguido, ct)
+        };
+    }
+
     public Task<DateTime?> ObtenerUltimoCambioAsync(int idUsuario, string tipoCambio, CancellationToken ct = default) =>
         _context.HistorialCambiosPerfil
             .Where(h => h.IdUsuario == idUsuario && h.TipoCambio == tipoCambio)

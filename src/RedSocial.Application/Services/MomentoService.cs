@@ -82,6 +82,15 @@ public class MomentoService : IMomentoService
         return Resultado<MomentosPaginadosDto>.Ok(momentos);
     }
 
+    public async Task<Resultado<MomentosPaginadosDto>> ObtenerMomentosDeUsuarioAsync(int idUsuarioPerfil, int idUsuarioActual, int? cursor, int cantidad = 30, CancellationToken ct = default)
+    {
+        if (!await _usuarios.ExistePorIdAsync(idUsuarioPerfil, ct))
+            return Resultado<MomentosPaginadosDto>.Error("No se encontro el usuario.");
+
+        var momentos = await _momentos.ObtenerPorUsuarioAsync(idUsuarioPerfil, idUsuarioActual, cursor, cantidad, ct);
+        return Resultado<MomentosPaginadosDto>.Ok(momentos);
+    }
+
     public async Task<Resultado<MeGustaMomentoDto>> AlternarMeGustaAsync(int idUsuario, int idMomento, CancellationToken ct = default)
     {
         if (!await _usuarios.ExistePorIdAsync(idUsuario, ct))
