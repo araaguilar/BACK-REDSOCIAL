@@ -36,11 +36,14 @@ public class SmtpEmailSender : IEmailSender
         };
 
         using var smtp = new SmtpClient();
+        smtp.Timeout = 20000;
         var seguridad = _settings.EnableSsl ? SecureSocketOptions.StartTls : SecureSocketOptions.Auto;
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(TimeSpan.FromSeconds(20));
 
-        await smtp.ConnectAsync(_settings.Host, _settings.Port, seguridad, ct);
-        await smtp.AuthenticateAsync(_settings.User, _settings.Password, ct);
-        await smtp.SendAsync(mensaje, ct);
-        await smtp.DisconnectAsync(true, ct);
+        await smtp.ConnectAsync(_settings.Host, _settings.Port, seguridad, timeout.Token);
+        await smtp.AuthenticateAsync(_settings.User, _settings.Password, timeout.Token);
+        await smtp.SendAsync(mensaje, timeout.Token);
+        await smtp.DisconnectAsync(true, timeout.Token);
     }
 }
