@@ -11,6 +11,7 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IPerfilService, PerfilService>();
         services.AddScoped<IMomentoService, MomentoService>();
+        services.AddScoped<IBusquedaService, BusquedaService>();
         return services;
     }
 }

@@ -26,6 +26,7 @@ public static class DependencyInjection
         services.AddScoped<IPerfilUsuarioRepository, PerfilUsuarioRepository>();
         services.AddScoped<IPerfilRepository, PerfilRepository>();
         services.AddScoped<IMomentoRepository, MomentoRepository>();
+        services.AddScoped<IBusquedaRepository, BusquedaRepository>();
         services.AddScoped<IEmailVerificationRepository, EmailVerificationRepository>();
         services.AddScoped<IRecuperacionPasswordRepository, RecuperacionPasswordRepository>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
