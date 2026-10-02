@@ -10,5 +10,6 @@ public interface IMomentoRepository
     Task<MomentosPaginadosDto> ObtenerPorUsuarioAsync(int idUsuario, int idUsuarioActual, int? cursor, int cantidad = 30, CancellationToken ct = default);
     Task<MomentoFeedDto?> ObtenerPorIdAsync(int idMomento, int idUsuarioActual, CancellationToken ct = default);
     Task<MeGustaMomentoDto?> AlternarMeGustaAsync(int idMomento, int idUsuario, CancellationToken ct = default);
+    Task<bool> EliminarSoftAsync(int idMomento, int idUsuario, string? motivo, CancellationToken ct = default);
     Task GuardarCambiosAsync(CancellationToken ct = default);
 }

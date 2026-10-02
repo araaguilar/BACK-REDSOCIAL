@@ -165,5 +165,24 @@ public class MomentoRepository : IMomentoRepository
         };
     }
 
+    public async Task<bool> EliminarSoftAsync(int idMomento, int idUsuario, string? motivo, CancellationToken ct = default)
+    {
+        var momento = await _context.Momentos
+            .FirstOrDefaultAsync(m => m.IdMomento == idMomento && m.IdUsuario == idUsuario && m.Activo, ct);
+
+        if (momento is null) return false;
+
+        var ahora = DateTime.UtcNow;
+        momento.Activo = false;
+        momento.FechaEliminacion = ahora;
+        momento.EliminarDefinitivamenteEn = ahora.AddDays(30);
+        momento.EliminadoPorUsuario = idUsuario;
+        momento.MotivoEliminacion = string.IsNullOrWhiteSpace(motivo) ? "Eliminado por el usuario" : motivo.Trim();
+        momento.FechaActualizacion = ahora;
+
+        await _context.SaveChangesAsync(ct);
+        return true;
+    }
+
     public Task GuardarCambiosAsync(CancellationToken ct = default) => _context.SaveChangesAsync(ct);
 }

@@ -51,6 +51,16 @@ public class MomentosController : ControllerBase
         return resultado.Exito ? Ok(resultado) : NotFound(resultado);
     }
 
+    [HttpDelete("{idMomento:int}")]
+    public async Task<IActionResult> Eliminar(int idMomento, CancellationToken ct)
+    {
+        var idClaim = User.FindFirst("sub")?.Value;
+        if (!int.TryParse(idClaim, out var idUsuario)) return Unauthorized();
+
+        var resultado = await _momentoService.EliminarAsync(idUsuario, idMomento, "Eliminado por el usuario", ct);
+        return resultado.Exito ? Ok(resultado) : NotFound(resultado);
+    }
+
     [HttpPost]
     [RequestSizeLimit(15 * 1024 * 1024)]
     public async Task<IActionResult> Crear([FromForm] CrearMomentoForm request, CancellationToken ct)

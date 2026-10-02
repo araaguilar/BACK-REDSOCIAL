@@ -13,6 +13,10 @@ public class Momento
     public bool Activo { get; set; } = true;
     public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
     public DateTime? FechaActualizacion { get; set; }
+    public DateTime? FechaEliminacion { get; set; }
+    public DateTime? EliminarDefinitivamenteEn { get; set; }
+    public int? EliminadoPorUsuario { get; set; }
+    public string? MotivoEliminacion { get; set; }
 
     public Usuario? Usuario { get; set; }
 }

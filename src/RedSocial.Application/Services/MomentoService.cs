@@ -92,4 +92,15 @@ public class MomentoService : IMomentoService
             ? Resultado<MeGustaMomentoDto>.Error("No se encontro el momento.")
             : Resultado<MeGustaMomentoDto>.Ok(resultado);
     }
+
+    public async Task<Resultado<object>> EliminarAsync(int idUsuario, int idMomento, string? motivo = null, CancellationToken ct = default)
+    {
+        if (!await _usuarios.ExistePorIdAsync(idUsuario, ct))
+            return Resultado<object>.Error("No se encontro el usuario.");
+
+        var eliminado = await _momentos.EliminarSoftAsync(idMomento, idUsuario, motivo, ct);
+        return eliminado
+            ? Resultado<object>.Ok(new { idMomento }, "Momento eliminado. Se conservara por auditoria durante 30 dias.")
+            : Resultado<object>.Error("No se encontro el momento o no tienes permiso para eliminarlo.");
+    }
 }
