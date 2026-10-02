@@ -17,17 +17,26 @@ public class JwtGenerator : IJwtGenerator
     public (string Token, DateTime ExpiraEn) Generar(Usuario usuario)
     {
         var expira = DateTime.UtcNow.AddMinutes(_settings.ExpireMinutes);
+        var roles = usuario.Roles
+            .Select(ur => ur.Rol?.Nombre)
+            .Where(r => !string.IsNullOrWhiteSpace(r))
+            .Select(r => r!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .DefaultIfEmpty(usuario.Rol)
+            .ToList();
 
         // Nunca incluir datos sensibles (hash, contraseña) en el token: el payload solo va en Base64.
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, usuario.IdUsuario.ToString()),
             new Claim(JwtRegisteredClaimNames.UniqueName, usuario.NombreUsuario),
             new Claim(JwtRegisteredClaimNames.Email, usuario.Email),
-            new Claim(ClaimTypes.Role, usuario.Rol),
-            new Claim("rol", usuario.Rol),
+            new Claim("rol", roles.Contains(usuario.Rol, StringComparer.OrdinalIgnoreCase) ? usuario.Rol : roles.First()),
+            new Claim("roles", string.Join(",", roles)),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
+
+        claims.AddRange(roles.Select(rol => new Claim(ClaimTypes.Role, rol)));
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.Key));
         var token = new JwtSecurityToken(

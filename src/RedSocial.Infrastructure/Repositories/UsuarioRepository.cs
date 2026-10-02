@@ -15,13 +15,19 @@ public class UsuarioRepository : IUsuarioRepository
     public Task<Usuario?> ObtenerPorUsuarioOEmailAsync(string usuarioOEmail, CancellationToken ct = default)
     {
         var email = usuarioOEmail.ToLowerInvariant();
-        return _context.Usuarios.FirstOrDefaultAsync(u => u.NombreUsuario == usuarioOEmail || u.Email == email, ct);
+        return _context.Usuarios
+            .Include(u => u.Roles)
+            .ThenInclude(ur => ur.Rol)
+            .FirstOrDefaultAsync(u => u.NombreUsuario == usuarioOEmail || u.Email == email, ct);
     }
 
     public Task<Usuario?> ObtenerPorEmailAsync(string email, CancellationToken ct = default)
     {
         var normalizado = email.ToLowerInvariant();
-        return _context.Usuarios.FirstOrDefaultAsync(u => u.Email == normalizado, ct);
+        return _context.Usuarios
+            .Include(u => u.Roles)
+            .ThenInclude(ur => ur.Rol)
+            .FirstOrDefaultAsync(u => u.Email == normalizado, ct);
     }
 
     public Task<bool> ExisteNombreUsuarioAsync(string nombreUsuario, CancellationToken ct = default) =>

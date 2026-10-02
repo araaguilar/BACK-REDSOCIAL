@@ -315,13 +315,28 @@ public class AuthService : IAuthService
     private AuthResponseDto CrearRespuesta(Usuario usuario)
     {
         var (token, expira) = _jwt.Generar(usuario);
+        var roles = usuario.Roles
+            .Select(ur => ur.Rol?.Nombre)
+            .Where(r => !string.IsNullOrWhiteSpace(r))
+            .Select(r => r!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .DefaultIfEmpty(usuario.Rol)
+            .Select(r => r.ToLowerInvariant())
+            .ToList();
+
+        var rolPrincipal = roles.Contains(usuario.Rol.ToLowerInvariant())
+            ? usuario.Rol.ToLowerInvariant()
+            : roles.First();
+
         return new AuthResponseDto
         {
             IdUsuario = usuario.IdUsuario,
             NombreUsuario = usuario.NombreUsuario,
             NombrePerfil = usuario.NombrePerfil,
             Email = usuario.Email,
-            Rol = usuario.Rol,
+            Rol = rolPrincipal,
+            Roles = roles,
+            EsFundador = string.Equals(usuario.Email, "craul0090@gmail.com", StringComparison.OrdinalIgnoreCase),
             EmailVerificado = usuario.EmailVerificado,
             Token = token,
             ExpiraEn = expira

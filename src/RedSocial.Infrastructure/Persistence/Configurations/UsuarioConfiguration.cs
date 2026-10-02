@@ -18,6 +18,8 @@ public class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
         // Un hash BCrypt mide 60 caracteres ($2a$12$ + salt + hash).
         builder.Property(u => u.PasswordHash).HasMaxLength(60).IsUnicode(false).IsRequired();
         builder.Property(u => u.Rol).HasMaxLength(20).HasDefaultValue("usuario").IsRequired();
+        builder.Property(u => u.EstadoCuenta).HasMaxLength(30).HasDefaultValue("activa").IsRequired();
+        builder.Property(u => u.MotivoEstadoCuenta).HasMaxLength(300);
         builder.Property(u => u.EmailVerificado).HasDefaultValue(false);
         builder.Property(u => u.FechaRegistro).HasDefaultValueSql("SYSUTCDATETIME()");
 

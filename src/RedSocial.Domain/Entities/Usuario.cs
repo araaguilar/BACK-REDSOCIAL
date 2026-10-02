@@ -13,7 +13,12 @@ public class Usuario
     public string Rol { get; set; } = "usuario";
     public bool EmailVerificado { get; set; }
     public bool Activo { get; set; } = true;
+    public string EstadoCuenta { get; set; } = "activa";
+    public DateTime? FechaDesactivacion { get; set; }
+    public DateTime? FechaEliminacion { get; set; }
+    public string? MotivoEstadoCuenta { get; set; }
     public DateTime FechaRegistro { get; set; } = DateTime.UtcNow;
     public DateTime? UltimoLogin { get; set; }
     public PerfilUsuario? Perfil { get; set; }
+    public ICollection<UsuarioRol> Roles { get; set; } = [];
 }
