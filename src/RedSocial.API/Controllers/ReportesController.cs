@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using RedSocial.Domain.Entities;
 using RedSocial.Infrastructure.Persistence;
 
@@ -21,6 +22,8 @@ public class ReportesController : ControllerBase
         var idReportante = ObtenerIdUsuario();
         if (idReportante is null) return Unauthorized();
         if (request.IdUsuario is null || request.IdUsuario == idReportante) return BadRequest(new { exito = false, mensaje = "No puedes reportar este perfil." });
+        var existeUsuario = await _context.Usuarios.AnyAsync(u => u.IdUsuario == request.IdUsuario && u.Activo, ct);
+        if (!existeUsuario) return NotFound(new { exito = false, mensaje = "Perfil no encontrado." });
 
         var reporte = CrearReporte(idReportante.Value, "perfil", request.Motivo, request.Detalle);
         reporte.IdUsuarioReportado = request.IdUsuario;
@@ -36,8 +39,17 @@ public class ReportesController : ControllerBase
         if (idReportante is null) return Unauthorized();
         if (request.IdMomento is null) return BadRequest(new { exito = false, mensaje = "Selecciona el momento a reportar." });
 
+        var momento = await _context.Momentos
+            .AsNoTracking()
+            .Where(m => m.IdMomento == request.IdMomento && m.Activo)
+            .Select(m => new { m.IdMomento, m.IdUsuario })
+            .FirstOrDefaultAsync(ct);
+        if (momento is null) return NotFound(new { exito = false, mensaje = "Momento no encontrado." });
+        if (momento.IdUsuario == idReportante) return BadRequest(new { exito = false, mensaje = "No puedes reportar tu propio momento." });
+
         var reporte = CrearReporte(idReportante.Value, "momento", request.Motivo, request.Detalle);
-        reporte.IdMomentoReportado = request.IdMomento;
+        reporte.IdMomentoReportado = momento.IdMomento;
+        reporte.IdUsuarioReportado = momento.IdUsuario;
         await _context.Reportes.AddAsync(reporte, ct);
         await _context.SaveChangesAsync(ct);
         return Ok(new { exito = true, mensaje = "Reporte enviado." });

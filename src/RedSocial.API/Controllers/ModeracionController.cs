@@ -54,6 +54,49 @@ public class ModeracionController : ControllerBase
             .Select(r => new { id = r.IdReporte, titulo = "Reporte por spam", detalle = r.Detalle ?? "Contenido marcado como spam.", nivel = "Medio" })
             .ToListAsync(ct);
 
+        var reportesRecientes = await (
+            from reporte in _context.Reportes.AsNoTracking()
+            join reportante in _context.Usuarios.AsNoTracking() on reporte.IdReportante equals reportante.IdUsuario
+            join perfilReportante in _context.PerfilesUsuario.AsNoTracking() on reportante.IdUsuario equals perfilReportante.IdUsuario into perfilesReportante
+            from perfilReportante in perfilesReportante.DefaultIfEmpty()
+            join reportado in _context.Usuarios.AsNoTracking() on reporte.IdUsuarioReportado equals reportado.IdUsuario into usuariosReportados
+            from reportado in usuariosReportados.DefaultIfEmpty()
+            join perfilReportado in _context.PerfilesUsuario.AsNoTracking() on reporte.IdUsuarioReportado equals perfilReportado.IdUsuario into perfilesReportado
+            from perfilReportado in perfilesReportado.DefaultIfEmpty()
+            join momento in _context.Momentos.AsNoTracking() on reporte.IdMomentoReportado equals momento.IdMomento into momentos
+            from momento in momentos.DefaultIfEmpty()
+            where reporte.Estado == "abierto"
+            orderby reporte.FechaCreacion descending
+            select new
+            {
+                id = reporte.IdReporte,
+                tipo = reporte.Tipo,
+                motivo = reporte.Motivo,
+                detalle = reporte.Detalle,
+                fechaReporte = reporte.FechaCreacion,
+                cuentaReportada = reportado == null ? null : new
+                {
+                    idUsuario = reportado.IdUsuario,
+                    usuario = "@" + reportado.NombreUsuario,
+                    nombre = perfilReportado != null ? perfilReportado.NombrePerfil : reportado.NombrePerfil,
+                    email = reportado.Email
+                },
+                cuentaReportante = new
+                {
+                    idUsuario = reportante.IdUsuario,
+                    usuario = "@" + reportante.NombreUsuario,
+                    nombre = perfilReportante != null ? perfilReportante.NombrePerfil : reportante.NombrePerfil,
+                    email = reportante.Email
+                },
+                momento = momento == null ? null : new
+                {
+                    idMomento = momento.IdMomento,
+                    texto = momento.Texto,
+                    tipoAdjunto = momento.TipoAdjunto,
+                    archivoUrl = momento.ArchivoUrl
+                }
+            }).Take(12).ToListAsync(ct);
+
         return Ok(new
         {
             exito = true,
@@ -61,7 +104,8 @@ public class ModeracionController : ControllerBase
             {
                 estadisticas = new { reportesAbiertos, alertasSpam, cuentasRestringidas, casosUrgentes },
                 cuentasReportadas = cuentas,
-                alertasSpam = spam
+                alertasSpam = spam,
+                reportesRecientes
             }
         });
     }
