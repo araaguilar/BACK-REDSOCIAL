@@ -16,19 +16,29 @@ public class ModeracionController : ControllerBase
     public ModeracionController(AppDbContext context) => _context = context;
 
     [HttpGet("dashboard")]
-    public async Task<IActionResult> Dashboard(CancellationToken ct)
+    public async Task<IActionResult> Dashboard(
+        [FromQuery] int paginaCuentas = 1,
+        [FromQuery] int paginaReportes = 1,
+        [FromQuery] int paginaObservacion = 1,
+        CancellationToken ct = default)
     {
+        const int cantidad = 10;
+        paginaCuentas = Math.Max(1, paginaCuentas);
+        paginaReportes = Math.Max(1, paginaReportes);
+        paginaObservacion = Math.Max(1, paginaObservacion);
+
         var reportesAbiertos = await _context.Reportes.CountAsync(r => r.Estado == "abierto", ct);
         var alertasSpam = await _context.Reportes.CountAsync(r => r.Estado == "abierto" && r.Motivo == "spam", ct);
         var cuentasRestringidas = await _context.ModeracionAcciones.CountAsync(a => a.Tipo == "restringir", ct);
         var casosUrgentes = await _context.Reportes.CountAsync(r => r.Estado == "abierto" && (r.Motivo == "violencia" || r.Motivo == "odio"), ct);
 
-        var cuentas = await (
+        var cuentasQuery = (
             from reporte in _context.Reportes.AsNoTracking()
             join usuario in _context.Usuarios.AsNoTracking() on reporte.IdUsuarioReportado equals usuario.IdUsuario
             join perfil in _context.PerfilesUsuario.AsNoTracking() on usuario.IdUsuario equals perfil.IdUsuario into perfiles
             from perfil in perfiles.DefaultIfEmpty()
             where reporte.Estado == "abierto" && reporte.IdUsuarioReportado != null
+                && !_context.ModeracionAcciones.Any(a => a.IdUsuarioObjetivo == usuario.IdUsuario && a.Tipo == "advertencia")
             group reporte by new
             {
                 usuario.IdUsuario,
@@ -44,7 +54,44 @@ public class ModeracionController : ControllerBase
                 reportes = g.Count(),
                 motivo = g.GroupBy(r => r.Motivo).OrderByDescending(m => m.Count()).Select(m => m.Key).First(),
                 riesgo = g.Count() >= 5 ? "Alto" : "Medio"
-            }).Take(8).ToListAsync(ct);
+            });
+
+        var totalCuentas = await cuentasQuery.CountAsync(ct);
+        var cuentas = await cuentasQuery
+            .Skip((paginaCuentas - 1) * cantidad)
+            .Take(cantidad)
+            .ToListAsync(ct);
+
+        var cuentasObservacionQuery = (
+            from accion in _context.ModeracionAcciones.AsNoTracking()
+            join usuario in _context.Usuarios.AsNoTracking() on accion.IdUsuarioObjetivo equals usuario.IdUsuario
+            join perfil in _context.PerfilesUsuario.AsNoTracking() on usuario.IdUsuario equals perfil.IdUsuario into perfiles
+            from perfil in perfiles.DefaultIfEmpty()
+            where accion.Tipo == "advertencia"
+            group accion by new
+            {
+                usuario.IdUsuario,
+                usuario.NombreUsuario,
+                NombrePerfil = perfil != null ? perfil.NombrePerfil : usuario.NombrePerfil,
+                usuario.Email
+            } into g
+            orderby g.Max(a => a.FechaCreacion) descending
+            select new
+            {
+                idUsuario = g.Key.IdUsuario,
+                usuario = "@" + g.Key.NombreUsuario,
+                nombre = g.Key.NombrePerfil,
+                email = g.Key.Email,
+                advertencias = g.Count(),
+                motivo = g.OrderByDescending(a => a.FechaCreacion).Select(a => a.Motivo).First(),
+                fechaUltimaAdvertencia = g.Max(a => a.FechaCreacion)
+            });
+
+        var totalObservacion = await cuentasObservacionQuery.CountAsync(ct);
+        var cuentasObservacion = await cuentasObservacionQuery
+            .Skip((paginaObservacion - 1) * cantidad)
+            .Take(cantidad)
+            .ToListAsync(ct);
 
         var spam = await _context.Reportes
             .AsNoTracking()
@@ -54,7 +101,7 @@ public class ModeracionController : ControllerBase
             .Select(r => new { id = r.IdReporte, titulo = "Reporte por spam", detalle = r.Detalle ?? "Contenido marcado como spam.", nivel = "Medio" })
             .ToListAsync(ct);
 
-        var reportesRecientes = await (
+        var reportesRecientesQuery = (
             from reporte in _context.Reportes.AsNoTracking()
             join reportante in _context.Usuarios.AsNoTracking() on reporte.IdReportante equals reportante.IdUsuario
             join perfilReportante in _context.PerfilesUsuario.AsNoTracking() on reportante.IdUsuario equals perfilReportante.IdUsuario into perfilesReportante
@@ -65,7 +112,7 @@ public class ModeracionController : ControllerBase
             from perfilReportado in perfilesReportado.DefaultIfEmpty()
             join momento in _context.Momentos.AsNoTracking() on reporte.IdMomentoReportado equals momento.IdMomento into momentos
             from momento in momentos.DefaultIfEmpty()
-            where reporte.Estado == "abierto"
+            where reporte.Estado == "abierto" && reporte.Tipo == "momento"
             orderby reporte.FechaCreacion descending
             select new
             {
@@ -95,7 +142,13 @@ public class ModeracionController : ControllerBase
                     tipoAdjunto = momento.TipoAdjunto,
                     archivoUrl = momento.ArchivoUrl
                 }
-            }).Take(12).ToListAsync(ct);
+            });
+
+        var totalReportesRecientes = await reportesRecientesQuery.CountAsync(ct);
+        var reportesRecientes = await reportesRecientesQuery
+            .Skip((paginaReportes - 1) * cantidad)
+            .Take(cantidad)
+            .ToListAsync(ct);
 
         return Ok(new
         {
@@ -103,12 +156,22 @@ public class ModeracionController : ControllerBase
             datos = new
             {
                 estadisticas = new { reportesAbiertos, alertasSpam, cuentasRestringidas, casosUrgentes },
-                cuentasReportadas = cuentas,
+                cuentasReportadas = Paginar(cuentas, paginaCuentas, totalCuentas, cantidad),
+                cuentasObservacion = Paginar(cuentasObservacion, paginaObservacion, totalObservacion, cantidad),
                 alertasSpam = spam,
-                reportesRecientes
+                reportesRecientes = Paginar(reportesRecientes, paginaReportes, totalReportesRecientes, cantidad)
             }
         });
     }
+
+    private static object Paginar<T>(IEnumerable<T> items, int pagina, int total, int cantidad) => new
+    {
+        items,
+        pagina,
+        total,
+        totalPaginas = (int)Math.Ceiling(total / (double)cantidad),
+        cantidad
+    };
 
     [HttpPost("usuarios/{idUsuario:int}/accion")]
     public async Task<IActionResult> AccionUsuario(int idUsuario, [FromBody] ModeracionAccionRequest request, CancellationToken ct)
