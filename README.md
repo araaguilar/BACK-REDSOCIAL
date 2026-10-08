@@ -30,13 +30,23 @@ Dependencias: `API → Infrastructure → Application → Domain`. Application n
 Requisitos: .NET 8 SDK y un SQL Server (local o en Docker).
 
 1. Ejecutar `database/01_CrearBaseDatos.sql` en tu SQL Server (desde SSMS).
-2. Crear tu configuración local (una sola vez por máquina) y llenarla con los datos de **tu** servidor y una clave JWT de 32+ caracteres:
+2. Crear tu configuracion local (una sola vez por maquina). Recomendado en Windows:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\setup-local.ps1
+```
+
+El script crea `src/RedSocial.API/appsettings.Local.json` con una clave JWT aleatoria segura. Luego revisa `DefaultConnection` en ese archivo y ajustalo a los datos de **tu** SQL Server.
+
+Alternativa manual:
 
 ```bash
 cp src/RedSocial.API/appsettings.Local.example.json src/RedSocial.API/appsettings.Local.json
 ```
 
-`appsettings.Local.json` está en `.gitignore`: nunca se sube al repo.
+Si lo haces manual, cambia `Jwt:Key` por una cadena aleatoria de 32+ caracteres.
+
+`appsettings.Local.json` esta en `.gitignore`: nunca se sube al repo.
 
 Cada integrante usa su propio servidor y contraseña; nada de eso se sube al repo. Los scripts de `database/` son idempotentes y se numeran (`02_...sql`) conforme crezca el esquema.
 

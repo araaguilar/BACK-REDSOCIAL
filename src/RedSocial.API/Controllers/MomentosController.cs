@@ -31,6 +31,14 @@ public class MomentosController : ControllerBase
         return Ok(resultado);
     }
 
+    [HttpGet("publico")]
+    [AllowAnonymous]
+    public async Task<IActionResult> FeedPublico(CancellationToken ct)
+    {
+        var resultado = await _momentoService.ObtenerFeedPublicoAsync(ct);
+        return Ok(resultado);
+    }
+
     [HttpGet("me")]
     public async Task<IActionResult> MisMomentos([FromQuery] int? cursor, [FromQuery] int cantidad = 30, CancellationToken ct = default)
     {
