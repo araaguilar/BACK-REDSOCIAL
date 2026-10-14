@@ -12,4 +12,5 @@ public class AuthResponseDto
     public bool EmailVerificado { get; set; }
     public string Token { get; set; } = string.Empty;
     public DateTime ExpiraEn { get; set; }
+    public DateTime? FechaDesactivacion { get; set; }
 }

@@ -44,6 +44,21 @@ public class SmtpEmailSender : IEmailSender
             ct);
     }
 
+    public async Task EnviarAvisoCuentaReactivadaAsync(string email, CancellationToken ct = default)
+    {
+        if (!_settings.Enabled || string.IsNullOrWhiteSpace(_settings.Host))
+        {
+            _logger.LogWarning("Aviso de cuenta reactivada para {Email}", email);
+            return;
+        }
+
+        await EnviarAsync(
+            email,
+            "Tu cuenta de Moment fue reactivada",
+            "Tu cuenta de Moment acaba de ser reactivada. Si no fuiste tú, cambia tu contraseña cuanto antes.",
+            ct);
+    }
+
     private async Task EnviarAsync(string email, string asunto, string texto, CancellationToken ct)
     {
         var mensaje = new MimeMessage();

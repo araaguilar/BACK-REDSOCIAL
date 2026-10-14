@@ -23,6 +23,14 @@ public class AuthController : ControllerBase
         return resultado.Exito ? Ok(resultado) : Unauthorized(resultado);
     }
 
+    [HttpPost("cuenta/reactivar")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ReactivarCuenta([FromBody] LoginRequestDto dto, CancellationToken ct)
+    {
+        var resultado = await _authService.ReactivarCuentaAsync(dto, ct);
+        return resultado.Exito ? Ok(resultado) : Unauthorized(resultado);
+    }
+
     [HttpPost("registro/solicitar-codigo")]
     [AllowAnonymous]
     [EnableRateLimiting("Registro")]
@@ -93,6 +101,28 @@ public class AuthController : ControllerBase
         if (!int.TryParse(idClaim, out var idUsuario)) return Unauthorized();
 
         var resultado = await _authService.CambiarPasswordAutenticadoAsync(idUsuario, dto, ct);
+        return resultado.Exito ? Ok(resultado) : BadRequest(resultado);
+    }
+
+    [HttpPost("password/verificar")]
+    [Authorize]
+    public async Task<IActionResult> VerificarPassword([FromBody] VerificarPasswordRequestDto dto, CancellationToken ct)
+    {
+        var idClaim = User.FindFirst("sub")?.Value;
+        if (!int.TryParse(idClaim, out var idUsuario)) return Unauthorized();
+
+        var resultado = await _authService.VerificarPasswordAsync(idUsuario, dto, ct);
+        return resultado.Exito ? Ok(resultado) : BadRequest(resultado);
+    }
+
+    [HttpPost("cuenta/desactivar")]
+    [Authorize]
+    public async Task<IActionResult> DesactivarCuenta([FromBody] CambiarEstadoCuentaRequestDto dto, CancellationToken ct)
+    {
+        var idClaim = User.FindFirst("sub")?.Value;
+        if (!int.TryParse(idClaim, out var idUsuario)) return Unauthorized();
+
+        var resultado = await _authService.DesactivarCuentaAsync(idUsuario, dto, ct);
         return resultado.Exito ? Ok(resultado) : BadRequest(resultado);
     }
 

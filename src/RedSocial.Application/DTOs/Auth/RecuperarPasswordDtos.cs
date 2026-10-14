@@ -6,6 +6,8 @@ public class SolicitarRecuperacionPasswordRequestDto
 {
     [Required, EmailAddress, MaxLength(100)]
     public string Email { get; set; } = string.Empty;
+
+    public bool ConfirmarReactivacion { get; set; }
 }
 
 public class VerificarRecuperacionPasswordRequestDto
@@ -43,4 +45,16 @@ public class CambiarPasswordAutenticadoRequestDto
     [Required, MinLength(8), MaxLength(72)]
     [RegularExpression(@"^(?=.*[A-ZÁÉÍÓÚÑ])(?=.*[^A-Za-z0-9ÁÉÍÓÚáéíóúÑñ]).{8,}$", ErrorMessage = "La contraseña debe tener al menos 8 caracteres, una mayúscula y un carácter especial")]
     public string NuevaPassword { get; set; } = string.Empty;
+}
+
+public class VerificarPasswordRequestDto
+{
+    [Required, MaxLength(72)]
+    public string Password { get; set; } = string.Empty;
+}
+
+public class CambiarEstadoCuentaRequestDto
+{
+    [MaxLength(300)]
+    public string? Motivo { get; set; }
 }

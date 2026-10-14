@@ -14,6 +14,9 @@ public interface IAuthService
     Task<Resultado<VerificarRecuperacionPasswordResponseDto>> VerificarRecuperacionPasswordAsync(VerificarRecuperacionPasswordRequestDto dto, CancellationToken ct = default);
     Task<Resultado<object>> CambiarPasswordAsync(CambiarPasswordRequestDto dto, CancellationToken ct = default);
     Task<Resultado<object>> CambiarPasswordAutenticadoAsync(int idUsuario, CambiarPasswordAutenticadoRequestDto dto, CancellationToken ct = default);
+    Task<Resultado<object>> VerificarPasswordAsync(int idUsuario, VerificarPasswordRequestDto dto, CancellationToken ct = default);
+    Task<Resultado<object>> DesactivarCuentaAsync(int idUsuario, CambiarEstadoCuentaRequestDto dto, CancellationToken ct = default);
+    Task<Resultado<AuthResponseDto>> ReactivarCuentaAsync(LoginRequestDto dto, CancellationToken ct = default);
     Task<Resultado<AuthResponseDto>> LoginAsync(LoginRequestDto dto, CancellationToken ct = default);
     Task<Resultado<RegistroResponseDto>> RegistrarAsync(RegistroRequestDto dto, CancellationToken ct = default);
 }

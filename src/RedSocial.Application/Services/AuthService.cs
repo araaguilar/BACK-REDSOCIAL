@@ -158,8 +158,15 @@ public class AuthService : IAuthService
         var email = NormalizarEmail(dto.Email);
         var usuario = await _usuarios.ObtenerPorEmailAsync(email, ct);
 
-        if (usuario is null || !usuario.Activo)
+        if (usuario is null)
             return Resultado<SolicitarCodigoEmailResponseDto>.Error("No existe ninguna cuenta ligada a este correo");
+
+        if (!usuario.Activo && !dto.ConfirmarReactivacion)
+            return Resultado<SolicitarCodigoEmailResponseDto>.Ok(new SolicitarCodigoEmailResponseDto
+            {
+                CuentaDesactivada = true,
+                FechaDesactivacion = usuario.FechaDesactivacion
+            }, "Esta cuenta está desactivada.");
 
         await _recuperacionesPassword.InvalidarPendientesAsync(email, ct);
 
@@ -228,12 +235,17 @@ public class AuthService : IAuthService
             return Resultado<object>.Error("La recuperación expiró. Solicita un nuevo código.");
 
         var usuario = await _usuarios.ObtenerPorEmailAsync(email, ct);
-        if (usuario is null || usuario.IdUsuario != recuperacion.IdUsuario || !usuario.Activo)
+        if (usuario is null || usuario.IdUsuario != recuperacion.IdUsuario)
             return Resultado<object>.Error("La recuperación expiró. Solicita un nuevo código.");
 
         usuario.PasswordHash = _hasher.Hash(dto.NuevaPassword);
+        usuario.Activo = true;
+        usuario.EstadoCuenta = "activa";
+        usuario.FechaDesactivacion = null;
+        usuario.MotivoEstadoCuenta = null;
         recuperacion.Usado = true;
         await _usuarios.GuardarCambiosAsync(ct);
+        await _emailSender.EnviarAvisoCuentaReactivadaAsync(usuario.Email, ct);
 
         return Resultado<object>.Ok(new { }, "Contraseña actualizada correctamente.");
     }
@@ -254,6 +266,36 @@ public class AuthService : IAuthService
         return Resultado<object>.Ok(new { }, "Contraseña actualizada correctamente.");
     }
 
+    public async Task<Resultado<object>> VerificarPasswordAsync(int idUsuario, VerificarPasswordRequestDto dto, CancellationToken ct = default)
+    {
+        var usuario = await _usuarios.ObtenerPorIdAsync(idUsuario, ct);
+        if (usuario is null || !usuario.Activo)
+            return Resultado<object>.Error("Ups, algo salió mal. Inténtalo más tarde");
+
+        if (!_hasher.Verificar(dto.Password, usuario.PasswordHash))
+            return Resultado<object>.Error("Contraseña incorrecta");
+
+        return Resultado<object>.Ok(new { }, "Contraseña verificada.");
+    }
+
+    public async Task<Resultado<object>> DesactivarCuentaAsync(int idUsuario, CambiarEstadoCuentaRequestDto dto, CancellationToken ct = default)
+    {
+        var usuario = await _usuarios.ObtenerPorIdAsync(idUsuario, ct);
+        if (usuario is null || !usuario.Activo)
+            return Resultado<object>.Error("Ups, algo salió mal. Inténtalo más tarde");
+
+        usuario.Activo = false;
+        usuario.EstadoCuenta = "desactivada";
+        usuario.FechaDesactivacion = DateTime.UtcNow;
+        usuario.MotivoEstadoCuenta = string.IsNullOrWhiteSpace(dto.Motivo)
+            ? "Desactivación solicitada por el usuario"
+            : dto.Motivo.Trim();
+
+        await _usuarios.GuardarCambiosAsync(ct);
+
+        return Resultado<object>.Ok(new { }, "Cuenta desactivada correctamente.");
+    }
+
     public async Task<Resultado<AuthResponseDto>> LoginAsync(LoginRequestDto dto, CancellationToken ct = default)
     {
         var usuario = await _usuarios.ObtenerPorUsuarioOEmailAsync(dto.UsuarioOEmail.Trim(), ct);
@@ -266,17 +308,50 @@ public class AuthService : IAuthService
             return Resultado<AuthResponseDto>.Error(CredencialesInvalidas);
         }
 
-        if (!usuario.Activo)
-            return Resultado<AuthResponseDto>.Error("La cuenta está deshabilitada");
-
         // BCrypt toma el salt guardado dentro del hash y compara.
         if (!_hasher.Verificar(dto.Password, usuario.PasswordHash))
             return Resultado<AuthResponseDto>.Error(CredencialesInvalidas);
+
+        if (!usuario.Activo)
+            return Resultado<AuthResponseDto>.Error("Cuenta desactivada", new AuthResponseDto
+            {
+                IdUsuario = usuario.IdUsuario,
+                NombreUsuario = usuario.NombreUsuario,
+                NombrePerfil = usuario.NombrePerfil,
+                Email = usuario.Email,
+                FechaDesactivacion = usuario.FechaDesactivacion
+            });
 
         usuario.UltimoLogin = DateTime.UtcNow;
         await _usuarios.GuardarCambiosAsync(ct);
 
         return Resultado<AuthResponseDto>.Ok(CrearRespuesta(usuario), $"Bienvenido, {usuario.NombreUsuario}");
+    }
+
+    public async Task<Resultado<AuthResponseDto>> ReactivarCuentaAsync(LoginRequestDto dto, CancellationToken ct = default)
+    {
+        var usuario = await _usuarios.ObtenerPorUsuarioOEmailAsync(dto.UsuarioOEmail.Trim(), ct);
+        if (usuario is null)
+        {
+            _hasher.Hash(dto.Password);
+            return Resultado<AuthResponseDto>.Error(CredencialesInvalidas);
+        }
+
+        if (!_hasher.Verificar(dto.Password, usuario.PasswordHash))
+            return Resultado<AuthResponseDto>.Error(CredencialesInvalidas);
+
+        if (usuario.Activo)
+            return Resultado<AuthResponseDto>.Ok(CrearRespuesta(usuario), "Tu cuenta ya estaba activa.");
+
+        usuario.Activo = true;
+        usuario.EstadoCuenta = "activa";
+        usuario.FechaDesactivacion = null;
+        usuario.MotivoEstadoCuenta = null;
+        usuario.UltimoLogin = DateTime.UtcNow;
+        await _usuarios.GuardarCambiosAsync(ct);
+        await _emailSender.EnviarAvisoCuentaReactivadaAsync(usuario.Email, ct);
+
+        return Resultado<AuthResponseDto>.Ok(CrearRespuesta(usuario), "Bienvenido de vuelta a Moment.");
     }
 
     public async Task<Resultado<RegistroResponseDto>> RegistrarAsync(RegistroRequestDto dto, CancellationToken ct = default)

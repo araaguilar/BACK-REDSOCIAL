@@ -8,4 +8,5 @@ public class Resultado<T>
 
     public static Resultado<T> Ok(T datos, string mensaje = "") => new() { Exito = true, Datos = datos, Mensaje = mensaje };
     public static Resultado<T> Error(string mensaje) => new() { Exito = false, Mensaje = mensaje };
+    public static Resultado<T> Error(string mensaje, T datos) => new() { Exito = false, Mensaje = mensaje, Datos = datos };
 }
