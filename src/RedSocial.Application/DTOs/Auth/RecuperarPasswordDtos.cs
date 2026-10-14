@@ -34,3 +34,13 @@ public class CambiarPasswordRequestDto
     [RegularExpression(@"^(?=.*[A-ZÁÉÍÓÚÑ])(?=.*[^A-Za-z0-9ÁÉÍÓÚáéíóúÑñ]).{8,}$", ErrorMessage = "La contraseña debe tener al menos 8 caracteres, una mayúscula y un carácter especial")]
     public string NuevaPassword { get; set; } = string.Empty;
 }
+
+public class CambiarPasswordAutenticadoRequestDto
+{
+    [Required, MaxLength(72)]
+    public string PasswordActual { get; set; } = string.Empty;
+
+    [Required, MinLength(8), MaxLength(72)]
+    [RegularExpression(@"^(?=.*[A-ZÁÉÍÓÚÑ])(?=.*[^A-Za-z0-9ÁÉÍÓÚáéíóúÑñ]).{8,}$", ErrorMessage = "La contraseña debe tener al menos 8 caracteres, una mayúscula y un carácter especial")]
+    public string NuevaPassword { get; set; } = string.Empty;
+}

@@ -85,6 +85,17 @@ public class AuthController : ControllerBase
         return resultado.Exito ? Ok(resultado) : BadRequest(resultado);
     }
 
+    [HttpPost("password/cambiar")]
+    [Authorize]
+    public async Task<IActionResult> CambiarPasswordAutenticado([FromBody] CambiarPasswordAutenticadoRequestDto dto, CancellationToken ct)
+    {
+        var idClaim = User.FindFirst("sub")?.Value;
+        if (!int.TryParse(idClaim, out var idUsuario)) return Unauthorized();
+
+        var resultado = await _authService.CambiarPasswordAutenticadoAsync(idUsuario, dto, ct);
+        return resultado.Exito ? Ok(resultado) : BadRequest(resultado);
+    }
+
     [HttpGet("registro/usuario-disponible/{nombreUsuario}")]
     [AllowAnonymous]
     public async Task<IActionResult> UsuarioDisponible([FromRoute] string nombreUsuario, CancellationToken ct)

@@ -238,6 +238,22 @@ public class AuthService : IAuthService
         return Resultado<object>.Ok(new { }, "Contraseña actualizada correctamente.");
     }
 
+    public async Task<Resultado<object>> CambiarPasswordAutenticadoAsync(int idUsuario, CambiarPasswordAutenticadoRequestDto dto, CancellationToken ct = default)
+    {
+        var usuario = await _usuarios.ObtenerPorIdAsync(idUsuario, ct);
+        if (usuario is null || !usuario.Activo)
+            return Resultado<object>.Error("Ups, algo salió mal. Inténtalo más tarde");
+
+        if (!_hasher.Verificar(dto.PasswordActual, usuario.PasswordHash))
+            return Resultado<object>.Error("Contraseña incorrecta");
+
+        usuario.PasswordHash = _hasher.Hash(dto.NuevaPassword);
+        await _usuarios.GuardarCambiosAsync(ct);
+        await _emailSender.EnviarAvisoPasswordCambiadaAsync(usuario.Email, ct);
+
+        return Resultado<object>.Ok(new { }, "Contraseña actualizada correctamente.");
+    }
+
     public async Task<Resultado<AuthResponseDto>> LoginAsync(LoginRequestDto dto, CancellationToken ct = default)
     {
         var usuario = await _usuarios.ObtenerPorUsuarioOEmailAsync(dto.UsuarioOEmail.Trim(), ct);

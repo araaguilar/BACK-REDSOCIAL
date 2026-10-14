@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using RedSocial.API.Middleware;
+using RedSocial.API.Hubs;
+using RedSocial.API.Services;
 using RedSocial.Application;
 using RedSocial.Infrastructure;
 using RedSocial.Infrastructure.Security;
@@ -30,6 +32,18 @@ if (string.IsNullOrWhiteSpace(jwt.Key) || jwt.Key.Length < 32)
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/chat"))
+                    context.Token = accessToken;
+
+                return Task.CompletedTask;
+            }
+        };
         options.MapInboundClaims = false; // conservar nombres de claims ("sub", "email")
         options.TokenValidationParameters = new TokenValidationParameters
         {
@@ -61,9 +75,11 @@ builder.Services.AddRateLimiter(options =>
 // ── CORS para el frontend React ──────────────────────────────────────────
 var origenes = builder.Configuration.GetSection("Cors:Origenes").Get<string[]>() ?? [];
 builder.Services.AddCors(options =>
-    options.AddPolicy("Frontend", p => p.WithOrigins(origenes).AllowAnyHeader().AllowAnyMethod()));
+    options.AddPolicy("Frontend", p => p.WithOrigins(origenes).AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
 
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<PresenceTracker>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -104,5 +120,6 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<ChatHub>("/hubs/chat");
 
 app.Run();

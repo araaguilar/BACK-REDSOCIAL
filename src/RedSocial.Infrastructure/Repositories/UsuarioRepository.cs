@@ -30,6 +30,12 @@ public class UsuarioRepository : IUsuarioRepository
             .FirstOrDefaultAsync(u => u.Email == normalizado, ct);
     }
 
+    public Task<Usuario?> ObtenerPorIdAsync(int idUsuario, CancellationToken ct = default) =>
+        _context.Usuarios
+            .Include(u => u.Roles)
+            .ThenInclude(ur => ur.Rol)
+            .FirstOrDefaultAsync(u => u.IdUsuario == idUsuario, ct);
+
     public Task<bool> ExisteNombreUsuarioAsync(string nombreUsuario, CancellationToken ct = default) =>
         _context.Usuarios.AnyAsync(u => u.NombreUsuario == nombreUsuario, ct);
 

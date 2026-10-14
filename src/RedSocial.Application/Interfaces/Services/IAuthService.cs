@@ -13,6 +13,7 @@ public interface IAuthService
     Task<Resultado<SolicitarCodigoEmailResponseDto>> SolicitarRecuperacionPasswordAsync(SolicitarRecuperacionPasswordRequestDto dto, CancellationToken ct = default);
     Task<Resultado<VerificarRecuperacionPasswordResponseDto>> VerificarRecuperacionPasswordAsync(VerificarRecuperacionPasswordRequestDto dto, CancellationToken ct = default);
     Task<Resultado<object>> CambiarPasswordAsync(CambiarPasswordRequestDto dto, CancellationToken ct = default);
+    Task<Resultado<object>> CambiarPasswordAutenticadoAsync(int idUsuario, CambiarPasswordAutenticadoRequestDto dto, CancellationToken ct = default);
     Task<Resultado<AuthResponseDto>> LoginAsync(LoginRequestDto dto, CancellationToken ct = default);
     Task<Resultado<RegistroResponseDto>> RegistrarAsync(RegistroRequestDto dto, CancellationToken ct = default);
 }

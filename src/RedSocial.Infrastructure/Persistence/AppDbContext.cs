@@ -20,6 +20,8 @@ public class AppDbContext : DbContext
     public DbSet<HistorialCambioPerfil> HistorialCambiosPerfil => Set<HistorialCambioPerfil>();
     public DbSet<VerificacionEmail> VerificacionesEmail => Set<VerificacionEmail>();
     public DbSet<RecuperacionPassword> RecuperacionesPassword => Set<RecuperacionPassword>();
+    public DbSet<Conversacion> Conversaciones => Set<Conversacion>();
+    public DbSet<MensajeChat> MensajesChat => Set<MensajeChat>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

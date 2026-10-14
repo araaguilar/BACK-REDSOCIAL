@@ -26,13 +26,33 @@ public class SmtpEmailSender : IEmailSender
             return;
         }
 
+        await EnviarAsync(email, "Tu código de verificación de Moment", $"Tu código de verificación es {codigo}. Expira en 10 minutos.", ct);
+    }
+
+    public async Task EnviarAvisoPasswordCambiadaAsync(string email, CancellationToken ct = default)
+    {
+        if (!_settings.Enabled || string.IsNullOrWhiteSpace(_settings.Host))
+        {
+            _logger.LogWarning("Aviso de cambio de contraseña para {Email}", email);
+            return;
+        }
+
+        await EnviarAsync(
+            email,
+            "Tu contraseña de Moment fue actualizada",
+            "Tu contraseña de Moment acaba de cambiar. Si no fuiste tú, recupera tu cuenta cuanto antes.",
+            ct);
+    }
+
+    private async Task EnviarAsync(string email, string asunto, string texto, CancellationToken ct)
+    {
         var mensaje = new MimeMessage();
         mensaje.From.Add(MailboxAddress.Parse(_settings.From));
         mensaje.To.Add(MailboxAddress.Parse(email));
-        mensaje.Subject = "Tu código de verificación de Moment";
+        mensaje.Subject = asunto;
         mensaje.Body = new TextPart("plain")
         {
-            Text = $"Tu código de verificación es {codigo}. Expira en 10 minutos."
+            Text = texto
         };
 
         using var smtp = new SmtpClient();
