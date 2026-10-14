@@ -22,6 +22,8 @@ public class AppDbContext : DbContext
     public DbSet<RecuperacionPassword> RecuperacionesPassword => Set<RecuperacionPassword>();
     public DbSet<Conversacion> Conversaciones => Set<Conversacion>();
     public DbSet<MensajeChat> MensajesChat => Set<MensajeChat>();
+    public DbSet<ComentarioMomento> ComentariosMomentos => Set<ComentarioMomento>();
+    public DbSet<ComentarioMomentoMeGusta> MeGustaComentariosMomentos => Set<ComentarioMomentoMeGusta>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

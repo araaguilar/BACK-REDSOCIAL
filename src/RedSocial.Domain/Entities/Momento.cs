@@ -19,4 +19,5 @@ public class Momento
     public string? MotivoEliminacion { get; set; }
 
     public Usuario? Usuario { get; set; }
+    public ICollection<ComentarioMomento> Comentarios { get; set; } = [];
 }
