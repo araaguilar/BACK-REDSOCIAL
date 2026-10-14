@@ -165,8 +165,10 @@ public class AuthService : IAuthService
             return Resultado<SolicitarCodigoEmailResponseDto>.Ok(new SolicitarCodigoEmailResponseDto
             {
                 CuentaDesactivada = true,
-                FechaDesactivacion = usuario.FechaDesactivacion
-            }, "Esta cuenta está desactivada.");
+                EstadoCuenta = usuario.EstadoCuenta,
+                FechaDesactivacion = usuario.FechaDesactivacion,
+                FechaEliminacion = usuario.FechaEliminacion
+            }, usuario.EstadoCuenta == "eliminacion_pendiente" ? "Esta cuenta está en proceso de eliminación." : "Esta cuenta está desactivada.");
 
         await _recuperacionesPassword.InvalidarPendientesAsync(email, ct);
 
@@ -296,6 +298,26 @@ public class AuthService : IAuthService
         return Resultado<object>.Ok(new { }, "Cuenta desactivada correctamente.");
     }
 
+    public async Task<Resultado<object>> EliminarCuentaAsync(int idUsuario, CambiarEstadoCuentaRequestDto dto, CancellationToken ct = default)
+    {
+        var usuario = await _usuarios.ObtenerPorIdAsync(idUsuario, ct);
+        if (usuario is null || !usuario.Activo)
+            return Resultado<object>.Error("Ups, algo salió mal. Inténtalo más tarde");
+
+        var ahora = DateTime.UtcNow;
+        usuario.Activo = false;
+        usuario.EstadoCuenta = "eliminacion_pendiente";
+        usuario.FechaDesactivacion = ahora;
+        usuario.FechaEliminacion = ahora.AddDays(30);
+        usuario.MotivoEstadoCuenta = string.IsNullOrWhiteSpace(dto.Motivo)
+            ? "Eliminación solicitada por el usuario"
+            : dto.Motivo.Trim();
+
+        await _usuarios.GuardarCambiosAsync(ct);
+
+        return Resultado<object>.Ok(new { fechaEliminacionDefinitiva = usuario.FechaEliminacion }, "Cuenta marcada para eliminación.");
+    }
+
     public async Task<Resultado<AuthResponseDto>> LoginAsync(LoginRequestDto dto, CancellationToken ct = default)
     {
         var usuario = await _usuarios.ObtenerPorUsuarioOEmailAsync(dto.UsuarioOEmail.Trim(), ct);
@@ -319,7 +341,9 @@ public class AuthService : IAuthService
                 NombreUsuario = usuario.NombreUsuario,
                 NombrePerfil = usuario.NombrePerfil,
                 Email = usuario.Email,
-                FechaDesactivacion = usuario.FechaDesactivacion
+                EstadoCuenta = usuario.EstadoCuenta,
+                FechaDesactivacion = usuario.FechaDesactivacion,
+                FechaEliminacion = usuario.FechaEliminacion
             });
 
         usuario.UltimoLogin = DateTime.UtcNow;
@@ -346,6 +370,7 @@ public class AuthService : IAuthService
         usuario.Activo = true;
         usuario.EstadoCuenta = "activa";
         usuario.FechaDesactivacion = null;
+        usuario.FechaEliminacion = null;
         usuario.MotivoEstadoCuenta = null;
         usuario.UltimoLogin = DateTime.UtcNow;
         await _usuarios.GuardarCambiosAsync(ct);
@@ -430,7 +455,10 @@ public class AuthService : IAuthService
             EsFundador = string.Equals(usuario.Email, "craul0090@gmail.com", StringComparison.OrdinalIgnoreCase),
             EmailVerificado = usuario.EmailVerificado,
             Token = token,
-            ExpiraEn = expira
+            ExpiraEn = expira,
+            EstadoCuenta = usuario.EstadoCuenta,
+            FechaDesactivacion = usuario.FechaDesactivacion,
+            FechaEliminacion = usuario.FechaEliminacion
         };
     }
 

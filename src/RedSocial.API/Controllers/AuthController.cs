@@ -126,6 +126,17 @@ public class AuthController : ControllerBase
         return resultado.Exito ? Ok(resultado) : BadRequest(resultado);
     }
 
+    [HttpPost("cuenta/eliminar")]
+    [Authorize]
+    public async Task<IActionResult> EliminarCuenta([FromBody] CambiarEstadoCuentaRequestDto dto, CancellationToken ct)
+    {
+        var idClaim = User.FindFirst("sub")?.Value;
+        if (!int.TryParse(idClaim, out var idUsuario)) return Unauthorized();
+
+        var resultado = await _authService.EliminarCuentaAsync(idUsuario, dto, ct);
+        return resultado.Exito ? Ok(resultado) : BadRequest(resultado);
+    }
+
     [HttpGet("registro/usuario-disponible/{nombreUsuario}")]
     [AllowAnonymous]
     public async Task<IActionResult> UsuarioDisponible([FromRoute] string nombreUsuario, CancellationToken ct)
