@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using RedSocial.Application.DTOs.Momentos;
 using RedSocial.Application.Interfaces.Services;
 using RedSocial.Domain.Entities;
@@ -13,8 +14,7 @@ namespace RedSocial.API.Controllers;
 [Authorize]
 public class MomentosController : ControllerBase
 {
-    private static readonly string[] ExtensionesImagen = [".jpg", ".jpeg", ".png", ".webp"];
-    private static readonly string[] ExtensionesVideo = [".mp4", ".webm", ".mov"];
+    private static readonly string[] ExtensionesImagen = [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"];
     private readonly IMomentoService _momentoService;
     private readonly IWebHostEnvironment _environment;
     private readonly AppDbContext _context;
@@ -261,7 +261,7 @@ public class MomentosController : ControllerBase
     }
 
     [HttpPost]
-    [RequestSizeLimit(15 * 1024 * 1024)]
+    [RequestSizeLimit(50 * 1024 * 1024)]
     public async Task<IActionResult> Crear([FromForm] CrearMomentoForm request, CancellationToken ct)
     {
         var idClaim = User.FindFirst("sub")?.Value;
@@ -271,15 +271,20 @@ public class MomentosController : ControllerBase
             ? null
             : request.TipoAdjunto.Trim().ToLowerInvariant();
 
-        var archivoUrl = await GuardarArchivoAsync(request.Archivo, tipoAdjunto, ct);
-        if (archivoUrl.Error is not null)
-            return BadRequest(new { exito = false, mensaje = archivoUrl.Error });
+        var archivos = await GuardarArchivosAsync(request.Archivos, tipoAdjunto, ct);
+        if (archivos.Error is not null)
+            return BadRequest(new { exito = false, mensaje = archivos.Error });
 
         var dto = new CrearMomentoDto
         {
             Texto = request.Texto,
             TipoAdjunto = tipoAdjunto,
-            ArchivoUrl = archivoUrl.Url,
+            ArchivoUrl = archivos.Urls.Count switch
+            {
+                0 => null,
+                1 => archivos.Urls[0],
+                _ => JsonSerializer.Serialize(archivos.Urls)
+            },
             LinkUrl = request.LinkUrl
         };
 
@@ -287,42 +292,41 @@ public class MomentosController : ControllerBase
         return resultado.Exito ? Ok(resultado) : BadRequest(resultado);
     }
 
-    private async Task<(string? Url, string? Error)> GuardarArchivoAsync(IFormFile? archivo, string? tipoAdjunto, CancellationToken ct)
+    private async Task<(List<string> Urls, string? Error)> GuardarArchivosAsync(IFormFile[]? archivos, string? tipoAdjunto, CancellationToken ct)
     {
-        if (archivo is null || archivo.Length == 0)
+        var lista = (archivos ?? []).Where(a => a is not null && a.Length > 0).ToArray();
+        if (lista.Length == 0)
         {
-            if (tipoAdjunto is "foto" or "video")
-                return (null, "Selecciona el archivo que quieres compartir.");
+            if (tipoAdjunto == "foto")
+                return ([], "Selecciona al menos una imagen para compartir.");
 
-            return (null, null);
+            return ([], null);
         }
 
-        if (tipoAdjunto is not ("foto" or "video"))
-            return (null, "Selecciona si el archivo es foto o video.");
-
-        var extension = Path.GetExtension(archivo.FileName).ToLowerInvariant();
-        var extensionesPermitidas = tipoAdjunto == "foto" ? ExtensionesImagen : ExtensionesVideo;
-        if (!extensionesPermitidas.Contains(extension))
-            return (null, "El archivo no tiene un formato permitido.");
-
-        var contentTypeValido = tipoAdjunto == "foto"
-            ? archivo.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)
-            : archivo.ContentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase);
-
-        if (!contentTypeValido)
-            return (null, "El tipo de archivo no coincide con el adjunto seleccionado.");
+        if (tipoAdjunto != "foto")
+            return ([], "Solo se permiten imágenes en los momentos.");
+        if (lista.Length > 10)
+            return ([], "Puedes subir hasta 10 imágenes por publicación.");
 
         var webRoot = _environment.WebRootPath ?? Path.Combine(_environment.ContentRootPath, "wwwroot");
         var carpeta = Path.Combine(webRoot, "uploads", "momentos");
         Directory.CreateDirectory(carpeta);
+        var urls = new List<string>(lista.Length);
 
-        var nombreSeguro = $"{Guid.NewGuid():N}{extension}";
-        var ruta = Path.Combine(carpeta, nombreSeguro);
+        foreach (var archivo in lista)
+        {
+            var extension = Path.GetExtension(archivo.FileName).ToLowerInvariant();
+            if (!ExtensionesImagen.Contains(extension) || !archivo.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+                return ([], "Todas las imágenes deben ser JPG, PNG, WEBP o HEIC.");
 
-        await using var stream = System.IO.File.Create(ruta);
-        await archivo.CopyToAsync(stream, ct);
+            var nombreSeguro = $"{Guid.NewGuid():N}{extension}";
+            var ruta = Path.Combine(carpeta, nombreSeguro);
+            await using var stream = System.IO.File.Create(ruta);
+            await archivo.CopyToAsync(stream, ct);
+            urls.Add($"/uploads/momentos/{nombreSeguro}");
+        }
 
-        return ($"/uploads/momentos/{nombreSeguro}", null);
+        return (urls, null);
     }
 }
 
@@ -331,7 +335,7 @@ public class CrearMomentoForm
     public string Texto { get; set; } = string.Empty;
     public string? TipoAdjunto { get; set; }
     public string? LinkUrl { get; set; }
-    public IFormFile? Archivo { get; set; }
+    public IFormFile[] Archivos { get; set; } = [];
 }
 
 public class CrearComentarioMomentoRequest

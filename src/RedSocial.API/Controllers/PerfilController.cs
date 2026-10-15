@@ -12,7 +12,7 @@ namespace RedSocial.API.Controllers;
 [Authorize]
 public class PerfilController : ControllerBase
 {
-    private static readonly string[] ExtensionesImagen = [".jpg", ".jpeg", ".png", ".webp"];
+    private static readonly string[] ExtensionesImagen = [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"];
     private readonly IPerfilService _perfilService;
     private readonly IWebHostEnvironment _environment;
     private readonly AppDbContext _context;
@@ -155,6 +155,23 @@ public class PerfilController : ControllerBase
         return resultado.Exito ? Ok(resultado) : BadRequest(resultado);
     }
 
+    [HttpDelete("foto")]
+    public async Task<IActionResult> EliminarFoto(CancellationToken ct)
+    {
+        var idClaim = User.FindFirst("sub")?.Value;
+        if (!int.TryParse(idClaim, out var idUsuario)) return Unauthorized();
+
+        var perfil = await _context.PerfilesUsuario.FirstOrDefaultAsync(p => p.IdUsuario == idUsuario, ct);
+        if (perfil is null) return NotFound(new { exito = false, mensaje = "No se encontró el perfil." });
+
+        perfil.FotoPerfilUrl = null;
+        perfil.FechaActualizacion = DateTime.UtcNow;
+        await _context.SaveChangesAsync(ct);
+
+        var resultado = await _perfilService.ObtenerMiPerfilAsync(idUsuario, ct);
+        return resultado.Exito ? Ok(resultado) : BadRequest(resultado);
+    }
+
     private static async Task<object> PaginarAsync<T>(IQueryable<T> query, int pagina, int cantidad, CancellationToken ct)
     {
         var total = await query.CountAsync(ct);
@@ -180,7 +197,7 @@ public class PerfilController : ControllerBase
 
         var extension = Path.GetExtension(foto.FileName).ToLowerInvariant();
         if (!ExtensionesImagen.Contains(extension))
-            return (null, "La foto debe ser JPG, PNG o WEBP.");
+            return (null, "La foto debe ser JPG, PNG, WEBP o HEIC.");
 
         if (!foto.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
             return (null, "El archivo seleccionado no parece ser una imagen.");

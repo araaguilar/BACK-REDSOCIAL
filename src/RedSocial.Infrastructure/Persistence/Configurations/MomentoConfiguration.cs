@@ -13,7 +13,7 @@ public class MomentoConfiguration : IEntityTypeConfiguration<Momento>
 
         builder.Property(m => m.Texto).HasMaxLength(180).IsRequired();
         builder.Property(m => m.TipoAdjunto).HasMaxLength(20);
-        builder.Property(m => m.ArchivoUrl).HasMaxLength(500);
+        builder.Property(m => m.ArchivoUrl).HasColumnType("nvarchar(max)");
         builder.Property(m => m.LinkUrl).HasMaxLength(500);
         builder.Property(m => m.MotivoEliminacion).HasMaxLength(200);
         builder.Property(m => m.FechaCreacion).HasDefaultValueSql("SYSUTCDATETIME()");

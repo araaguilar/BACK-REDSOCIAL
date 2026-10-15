@@ -32,8 +32,8 @@ public class MomentoRepository : IMomentoRepository
                 IdUsuario = usuario.IdUsuario,
                 Autor = perfil != null ? perfil.NombrePerfil : usuario.NombrePerfil,
                 Usuario = "@" + usuario.NombreUsuario,
-                Avatar = perfil != null
-                    ? perfil.NombrePerfil.Substring(0, Math.Min(perfil.NombrePerfil.Length, 2)).ToUpper()
+                Avatar = perfil != null && perfil.FotoPerfilUrl != null
+                    ? perfil.FotoPerfilUrl
                     : usuario.NombreUsuario.Substring(0, Math.Min(usuario.NombreUsuario.Length, 2)).ToUpper(),
                 Texto = momento.Texto,
                 TipoAdjunto = momento.TipoAdjunto,
@@ -63,8 +63,8 @@ public class MomentoRepository : IMomentoRepository
                 IdUsuario = usuario.IdUsuario,
                 Autor = perfil != null ? perfil.NombrePerfil : usuario.NombrePerfil,
                 Usuario = "@" + usuario.NombreUsuario,
-                Avatar = perfil != null
-                    ? perfil.NombrePerfil.Substring(0, Math.Min(perfil.NombrePerfil.Length, 2)).ToUpper()
+                Avatar = perfil != null && perfil.FotoPerfilUrl != null
+                    ? perfil.FotoPerfilUrl
                     : usuario.NombreUsuario.Substring(0, Math.Min(usuario.NombreUsuario.Length, 2)).ToUpper(),
                 Texto = momento.Texto,
                 TipoAdjunto = momento.TipoAdjunto,
@@ -107,8 +107,8 @@ public class MomentoRepository : IMomentoRepository
                 IdUsuario = usuario.IdUsuario,
                 Autor = perfil != null ? perfil.NombrePerfil : usuario.NombrePerfil,
                 Usuario = "@" + usuario.NombreUsuario,
-                Avatar = perfil != null
-                    ? perfil.NombrePerfil.Substring(0, Math.Min(perfil.NombrePerfil.Length, 2)).ToUpper()
+                Avatar = perfil != null && perfil.FotoPerfilUrl != null
+                    ? perfil.FotoPerfilUrl
                     : usuario.NombreUsuario.Substring(0, Math.Min(usuario.NombreUsuario.Length, 2)).ToUpper(),
                 Texto = momento.Texto,
                 TipoAdjunto = momento.TipoAdjunto,
