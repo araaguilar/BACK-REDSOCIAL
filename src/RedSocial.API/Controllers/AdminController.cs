@@ -15,6 +15,34 @@ public class AdminController : ControllerBase
 
     public AdminController(AppDbContext context) => _context = context;
 
+    [HttpGet("logs-acceso")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> LogsAcceso([FromQuery] int pagina = 1,
+        [FromQuery] string? q = null, [FromQuery] bool? exitoso = null,
+        [FromQuery] DateTimeOffset? desde = null, [FromQuery] DateTimeOffset? hasta = null,
+        CancellationToken ct = default)
+    {
+        const int cantidad = 20;
+        pagina = Math.Clamp(pagina, 1, 1000000);
+        q = q?.Trim();
+        if (q?.Length > 100 || (desde.HasValue && hasta.HasValue && desde > hasta))
+            return BadRequest(new { exito = false, mensaje = "Revisa la búsqueda y el rango de fechas." });
+
+        var query = _context.LogsAcceso.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(x => x.Identificador.Contains(q) || (x.DireccionIp != null && x.DireccionIp.Contains(q)));
+        if (exitoso.HasValue) query = query.Where(x => x.Exitoso == exitoso.Value);
+        if (desde.HasValue) query = query.Where(x => x.FechaUtc >= desde.Value);
+        if (hasta.HasValue) query = query.Where(x => x.FechaUtc <= hasta.Value);
+        var total = await query.CountAsync(ct);
+        var items = await query.OrderByDescending(x => x.FechaUtc).ThenByDescending(x => x.IdLogAcceso)
+            .Skip((pagina - 1) * cantidad).Take(cantidad).ToListAsync(ct);
+        return Ok(new { exito = true, datos = new
+        {
+            items, pagina, total, cantidad, totalPaginas = (int)Math.Ceiling(total / (double)cantidad)
+        }});
+    }
+
     [HttpGet("dashboard")]
     public async Task<IActionResult> Dashboard(CancellationToken ct)
     {

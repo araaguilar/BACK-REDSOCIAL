@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using RedSocial.Application.DTOs.Auth;
+using RedSocial.API.Services;
 using RedSocial.Application.Interfaces.Services;
 
 namespace RedSocial.API.Controllers;
@@ -13,13 +14,21 @@ public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
 
-    public AuthController(IAuthService authService) => _authService = authService;
+    private readonly AccessLogService _accessLog;
+
+    public AuthController(IAuthService authService, AccessLogService accessLog)
+    {
+        _authService = authService;
+        _accessLog = accessLog;
+    }
 
     [HttpPost("login")]
     [AllowAnonymous]
     public async Task<IActionResult> Login([FromBody] LoginRequestDto dto, CancellationToken ct)
     {
         var resultado = await _authService.LoginAsync(dto, ct);
+        await _accessLog.RegistrarAsync(dto.UsuarioOEmail, "login", resultado,
+            HttpContext.Connection.RemoteIpAddress, ct);
         return resultado.Exito ? Ok(resultado) : Unauthorized(resultado);
     }
 
@@ -28,6 +37,8 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> ReactivarCuenta([FromBody] LoginRequestDto dto, CancellationToken ct)
     {
         var resultado = await _authService.ReactivarCuentaAsync(dto, ct);
+        await _accessLog.RegistrarAsync(dto.UsuarioOEmail, "reactivacion", resultado,
+            HttpContext.Connection.RemoteIpAddress, ct);
         return resultado.Exito ? Ok(resultado) : Unauthorized(resultado);
     }
 

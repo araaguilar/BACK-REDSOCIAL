@@ -2,6 +2,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
+using System.Net;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -77,6 +79,20 @@ var origenes = builder.Configuration.GetSection("Cors:Origenes").Get<string[]>()
 builder.Services.AddCors(options =>
     options.AddPolicy("Frontend", p => p.WithOrigins(origenes).AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
 
+builder.Services.AddScoped<AccessLogService>();
+// Solo aceptar X-Forwarded-For cuando la conexión provenga de un proxy configurado.
+var proxies = builder.Configuration.GetSection("ReverseProxy:KnownProxies").Get<string[]>() ?? [];
+if (proxies.Length > 0)
+{
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        options.ForwardLimit = 1;
+        options.KnownNetworks.Clear();
+        options.KnownProxies.Clear();
+        foreach (var proxy in proxies) options.KnownProxies.Add(IPAddress.Parse(proxy));
+    });
+}
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<PresenceTracker>();
@@ -99,6 +115,7 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+if (proxies.Length > 0) app.UseForwardedHeaders();
 app.UseMiddleware<ExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
